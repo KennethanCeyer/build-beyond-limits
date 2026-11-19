@@ -27,9 +27,10 @@
 | 대상 | 스프라이트 키 규칙 | 크기 | `drawImage` 좌상단 `(dx, dy)` | 비고 |
 | :--- | :--- | :---: | :--- | :--- |
 | 일반 바닥 | `floor_1`, `floor_2`, `floor_3`, `floor_5` | `16×16` | `(x*16, y*16)` | `(x, y)` 좌표 해시로 변형 타일 혼합 |
-| 남향 높은 벽 | `wh_brick_{l\|m\|r\|single}` | `16×32` | `(x*16, y*16 - 16)` | 위쪽으로 16px 솟아오름 |
-| 하단 경계 턱 | `wall_top_{left\|mid\|right}` | `16×16` | `(x*16, y*16 - 12)` | 바닥 아래쪽 가장자리에 밀착 |
-| 좌·우 측면 벽 | `wall_outer_mid_left` / `right` | `16×16` | `(x*16, y*16)` | 2px 밝은 석재 테두리 보강 권장 |
+| 남향 높은 벽 | `wh_brick_m`, `wh_brick_alt` | `16×32` | `(x*16, y*16 - 16)` | 상단 5px 석재 테두리 + 16px 벽돌면 |
+| 하단 경계 턱 | `wall_top_mid` | `16×16` | `(x*16, y*16 - 16)` | 모든 석재 테두리와 동일한 `gy - 5..gy - 1` 높이로 정렬 |
+| 좌·우 측면 벽 | `wall_outer_mid_left` / `right` | `16×16` | `(x*16, y*16)` | 0x72 원본 5px 석재 테두리 그대로 사용 |
+| 4방향 방 모서리 | `wall_outer_top_left/right`, `wall_outer_front_left/right` | `16×16` | 상단 캡 `(x*16, y*16 - 16)`, 전면 `(x*16, y*16)` | 대각선 인접(`openSE`, `openSW`, `openNE`, `openNW`) 모서리 마감 |
 | 석주 (`PILLAR`) | `column` | `16×48` | `(x*16, y*16 - 32)` | Y 정렬 순서 `sortY = (y + 0.9) * 16` |
 | 반응형 가시 함정 | `floor_spikes_anim_f${frame}` | `16×16` | `(x*16, y*16)` | 기본 `f0`(숨김), `armed=f1`, `extended=f3` |
 | 영웅 캐릭터 | `${p.skin}_${moving?'run':'idle'}_anim_f${0..3}` | `16×28` | `(px - 8, py - 23)` | `p.facing === 'left'`일 때 좌우 반전 |
@@ -68,19 +69,25 @@
 
 ---
 
-## 벽 타일 연결 규칙
+## 벽 타일 및 모서리 연결 규칙
 
-벽 타일(`tid ∈ {2, 8, 12, 13}`)은 상하좌우 인접 타일이 열린 바닥(`open ∈ {1, 3, 4, 5, 6, 7, 9, 10, 11, 14, 15}`)인지 확인해 방향에 맞는 스프라이트를 선택합니다.
+벽 타일(`tid ∈ {2, 8, 12, 13}`)은 상하좌우(`openN/S/E/W`)와 대각선 4방향(`openNE/NW/SE/SW`) 인접 타일이 열린 바닥(`open ∈ {1, 3, 4, 5, 6, 7, 9, 10, 11, 14, 15}`)인지 확인해 모든 벽 테두리가 `y = gy - 5..gy - 1` 및 좌우 5px 폭으로 끊김 없이 이어지도록 그립니다.
 
 1. **남쪽이 바닥인 벽 (`openS`)**:
-   - `tid === 12` -> `wh_lava_f{0..2}`, 좌표 `(gx, gy - 16)`
-   - `tid === 13` -> `wh_blue_f{0..2}`, 좌표 `(gx, gy - 16)`
-   - 일반 벽 -> 좌우 벽 연결 여부에 따라 `wh_single`, `wh_brick_l`, `wh_brick_r`, `wh_brick_m`, 좌표 `(gx, gy - 16)`
-2. **북쪽이 바닥인 하단 경계 벽 (`!openS && openN`)**:
-   - `wall_top_left`, `wall_top_mid`, `wall_top_right`, 좌표 `(gx, gy - 12)`
-3. **좌우 측면 벽 (`!openS && openE` 또는 `openW`)**:
-   - 동쪽이 열려 있으면 `wall_outer_mid_left`, 서쪽이 열려 있으면 `wall_outer_mid_right`, 좌표 `(gx, gy)`
-4. **바닥 그림자**:
+   - `tid === 12` -> `wh_brick_m` + `wh_lava_f{0..2}`, 좌표 `(gx, gy - 16)`
+   - `tid === 13` -> `wh_brick_m` + `wh_blue_f{0..2}`, 좌표 `(gx, gy - 16)`
+   - 일반 벽 -> 전체 16px 폭을 채우는 `wh_brick_m` 또는 `wh_brick_alt`를 `(gx, gy - 16)`에 그립니다(`wh_brick_l`/`wh_brick_r`는 좌우 5px 여백이 있어 문턱·모서리에 홈이 생기므로 사용하지 않음).
+   - 통로 돌출 모서리: `openW && wallN`이면 `wall_outer_mid_right`를, `openE && wallN`이면 `wall_outer_mid_left`를 `(gx, gy - 16)`에 덧그려 위쪽 수직 벽 테두리와 매끄럽게 잇습니다.
+2. **좌·우 측면 벽 (`!openS && openE` 또는 `openW`)**:
+   - 바탕 `#181415`를 채운 뒤, 동쪽이 열려 있으면 `wall_outer_mid_left`(우측 5px 석재 테두리), 서쪽이 열려 있으면 `wall_outer_mid_right`(좌측 5px 석재 테두리)를 `(gx, gy)`에 그립니다.
+3. **상단 오목 모서리 (`!openS`)**:
+   - `!openE && openSE` (방 좌상단 모서리): `wall_outer_front_left`를 `(gx, gy)`에, `wall_outer_top_left`를 `(gx, gy - 16)`에 그려 북쪽 벽돌면과 왼쪽 수직 벽을 빈틈없이 연결합니다.
+   - `!openW && openSW` (방 우상단 모서리): `wall_outer_front_right`를 `(gx, gy)`에, `wall_outer_top_right`를 `(gx, gy - 16)`에 그립니다.
+4. **북쪽이 바닥인 하단 경계 벽 및 하단 오목 모서리 (`!openS`)**:
+   - `openN`: `wall_top_mid`를 `(gx, gy - 16)`에 그립니다(상단 석재 테두리와 정확히 같은 `gy - 5..gy - 1` 높이에 정렬).
+   - `!openN && !openE && openNE` (방 좌하단 모서리): `wall_outer_top_left`를 `(gx, gy - 16)`에 그립니다.
+   - `!openN && !openW && openNW` (방 우하단 모서리): `wall_outer_top_right`를 `(gx, gy - 16)`에 그립니다.
+5. **바닥 그림자**:
    - 열린 바닥 `(x, y)` 위쪽 `(x, y - 1)`이 벽이면 `floor_shadow_{0..3}`을 덧그리고, 왼쪽 `(x - 1, y)`가 벽이면 좌측 3픽셀 영역에 반투명 그림자(`rgba(8,6,7,0.34)`)를 그립니다.
 
 ---
