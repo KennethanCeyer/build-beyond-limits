@@ -71,23 +71,17 @@
 
 ## 벽 타일 및 모서리 연결 규칙
 
-벽 타일(`tid ∈ {2, 8, 12, 13}`)은 상하좌우(`openN/S/E/W`)와 대각선 4방향(`openNE/NW/SE/SW`) 인접 타일이 열린 바닥(`open ∈ {1, 3, 4, 5, 6, 7, 9, 10, 11, 14, 15}`)인지 확인해 모든 벽 테두리가 `y = gy - 5..gy - 1` 및 좌우 5px 폭으로 끊김 없이 이어지도록 그립니다.
+벽 타일(`tid ∈ {2, 8, 12, 13}`)은 상하좌우(`openN/S/E/W`)와 대각선 4방향(`openNE/NW/SE/SW`) 인접 타일이 열린 바닥(`open ∈ {1, 3, 4, 5, 6, 7, 9, 10, 11, 14, 15}`)인지 확인해 **2단계 패스(바탕·벽돌면 -> 지붕 석재 테두리·모서리 접합)**로 그립니다. 모든 상·하 석재 테두리는 `y = gy - 5..gy - 1`에, 좌·우 석재 테두리는 5px 폭(`x = gx + 11..15` / `gx + 0..4`)에 정렬합니다.
 
-1. **남쪽이 바닥인 벽 (`openS`)**:
-   - `tid === 12` -> `wh_brick_m` + `wh_lava_f{0..2}`, 좌표 `(gx, gy - 16)`
-   - `tid === 13` -> `wh_brick_m` + `wh_blue_f{0..2}`, 좌표 `(gx, gy - 16)`
-   - 일반 벽 -> 전체 16px 폭을 채우는 `wh_brick_m` 또는 `wh_brick_alt`를 `(gx, gy - 16)`에 그립니다(`wh_brick_l`/`wh_brick_r`는 좌우 5px 여백이 있어 문턱·모서리에 홈이 생기므로 사용하지 않음).
-   - 통로 돌출 모서리: `openW && wallN`이면 `wall_outer_mid_right`를, `openE && wallN`이면 `wall_outer_mid_left`를 `(gx, gy - 16)`에 덧그려 위쪽 수직 벽 테두리와 매끄럽게 잇습니다.
-2. **좌·우 측면 벽 (`!openS && openE` 또는 `openW`)**:
-   - 바탕 `#181415`를 채운 뒤, 동쪽이 열려 있으면 `wall_outer_mid_left`(우측 5px 석재 테두리), 서쪽이 열려 있으면 `wall_outer_mid_right`(좌측 5px 석재 테두리)를 `(gx, gy)`에 그립니다.
-3. **상단 오목 모서리 (`!openS`)**:
-   - `!openE && openSE` (방 좌상단 모서리): `wall_outer_front_left`를 `(gx, gy)`에, `wall_outer_top_left`를 `(gx, gy - 16)`에 그려 북쪽 벽돌면과 왼쪽 수직 벽을 빈틈없이 연결합니다.
-   - `!openW && openSW` (방 우상단 모서리): `wall_outer_front_right`를 `(gx, gy)`에, `wall_outer_top_right`를 `(gx, gy - 16)`에 그립니다.
-4. **북쪽이 바닥인 하단 경계 벽 및 하단 오목 모서리 (`!openS`)**:
-   - `openN`: `wall_top_mid`를 `(gx, gy - 16)`에 그립니다(상단 석재 테두리와 정확히 같은 `gy - 5..gy - 1` 높이에 정렬).
-   - `!openN && !openE && openNE` (방 좌하단 모서리): `wall_outer_top_left`를 `(gx, gy - 16)`에 그립니다.
-   - `!openN && !openW && openNW` (방 우하단 모서리): `wall_outer_top_right`를 `(gx, gy - 16)`에 그립니다.
-5. **바닥 그림자**:
+1. **1단계 (바탕과 남향 벽돌면)**:
+   - `openS`: 전체 16px 폭의 `wh_brick_m` 또는 `wh_brick_alt`를 `(gx, gy - 16)`에 그립니다(`tid === 12`는 `wh_lava_f{0..2}`, `tid === 13`은 `wh_blue_f{0..2}` 덧그리기).
+   - `!openS`: 타일 내부를 `#181415`로 채웁니다.
+2. **2단계 (지붕 석재 테두리와 8방향 모서리 마감)**:
+   - **돌출 문턱 모서리 (`openS && wallN`)**: `openW`이면 `wall_edge_bottom_left`를, `openE`이면 `wall_edge_bottom_right`를 `(gx, gy - 16)`에 그려 수직 테두리가 남향 벽 상단으로 매끄럽게(`└` / `┘`) 꺾이도록 연결합니다.
+   - **좌·우 측면 벽 (`!openS`)**: `openE`이면 `wall_outer_mid_left`, `openW`이면 `wall_outer_mid_right`를 `(gx, gy)`에 그립니다.
+   - **상단 오목 모서리 (`!openS`)**: `!openE && openSE && wallR`이면 `wall_outer_mid_left`를 `(gx, gy)`에 그려 왼쪽 수직 석재 테두리가 벽돌에 끊기지 않고 상단 `┌` 모서리(`gx + 11, gy - 5`)까지 이어지게 합니다. 우측(`!openW && openSW && wallL`)은 대칭으로 `wall_outer_mid_right`와 `┐` 모서리(`gx, gy - 5`)를 연결합니다.
+   - **하단 경계 벽과 하단 모서리 (`!openS`)**: `openN`이면 `wall_top_mid`를 `(gx, gy - 16)`에 그리고, 돌출 모서리(`openW` / `openE`)와 오목 모서리(`!openN && !openE && openNE` / `!openN && !openW && openNW`)의 5×5 접합부(`#c8b8a4` 상단, `#8d7f74` 측면, `#2d2629` 외곽선)를 이어 검은 틈 없이 90도로 마감합니다.
+3. **바닥 그림자**:
    - 열린 바닥 `(x, y)` 위쪽 `(x, y - 1)`이 벽이면 `floor_shadow_{0..3}`을 덧그리고, 왼쪽 `(x - 1, y)`가 벽이면 좌측 3픽셀 영역에 반투명 그림자(`rgba(8,6,7,0.34)`)를 그립니다.
 
 ---
