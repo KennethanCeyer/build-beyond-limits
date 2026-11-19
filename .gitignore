@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.env
+.env.local
+.env.server
+*.log
+.DS_Store
+coverage/
+.bbl-identity.json

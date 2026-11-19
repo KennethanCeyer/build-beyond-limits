@@ -1,0 +1,300 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 480" width="920" height="480" role="img" aria-label="Antigravity CLI (agy) interactive terminal session">
+  <defs>
+    <style>
+      .term {
+        font-family: 'Menlo', 'Monaco', 'SFMono-Regular', 'Consolas', 'Liberation Mono', monospace;
+        font-size: 13px;
+        fill: #e6edf3;
+      }
+      .title {
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
+        font-size: 12.5px;
+        font-weight: 500;
+        fill: #8b949e;
+      }
+      .p-dir { fill: #79c0ff; font-weight: 600; }
+      .p-sym { fill: #3fb950; font-weight: 700; }
+      .cmd   { fill: #ffa657; font-weight: 600; }
+      .flag  { fill: #d2a8ff; }
+      .str   { fill: #a5d6ff; }
+      .arg   { fill: #e6edf3; }
+      .out   { fill: #c9d1d9; }
+      .dim   { fill: #8b949e; }
+      .ok    { fill: #3fb950; font-weight: 600; }
+      .star  { fill: #e3b341; font-weight: 700; }
+      .ans   { fill: #f0f6fc; font-weight: 500; }
+      .spin  { fill: #79c0ff; }
+
+      /* Step 1: 0.0s .. 1.9s */
+      .s1-prompt { opacity: 1; }
+      .s1-cmd { clip-path: inset(0 100% 0 0); animation: type-s1 18s linear infinite; }
+      .s1-out { opacity: 0; animation: show-s1-out 18s step-end infinite; }
+
+      /* Step 2: 2.3s .. 4.3s */
+      .s2-prompt { opacity: 0; animation: show-s2-prompt 18s step-end infinite; }
+      .s2-cmd    { clip-path: inset(0 100% 0 0); animation: type-s2 18s linear infinite; }
+      .s2-o1     { opacity: 0; animation: show-s2-o1 18s step-end infinite; }
+      .s2-o2     { opacity: 0; animation: show-s2-o2 18s step-end infinite; }
+      .s2-o3     { opacity: 0; animation: show-s2-o3 18s step-end infinite; }
+      .s2-o4     { opacity: 0; animation: show-s2-o4 18s step-end infinite; }
+
+      /* Step 3a: mcp add 4.7s .. 6.9s */
+      .s3-prompt { opacity: 0; animation: show-s3-prompt 18s step-end infinite; }
+      .s3-cmd1   { clip-path: inset(0 100% 0 0); animation: type-s3a 18s linear infinite; }
+      .s3-cmd2   { clip-path: inset(0 100% 0 0); animation: type-s3b 18s linear infinite; }
+      .s3-out    { opacity: 0; animation: show-s3-out 18s step-end infinite; }
+
+      /* Step 3b: mcp list 7.4s .. 9.0s */
+      .s4-prompt { opacity: 0; animation: show-s4-prompt 18s step-end infinite; }
+      .s4-cmd    { clip-path: inset(0 100% 0 0); animation: type-s4 18s linear infinite; }
+      .s4-o1     { opacity: 0; animation: show-s4-o1 18s step-end infinite; }
+      .s4-o2     { opacity: 0; animation: show-s4-o2 18s step-end infinite; }
+
+      /* Step 4: agy -p 9.4s .. 13.0s */
+      .s5-prompt { opacity: 0; animation: show-s5-prompt 18s step-end infinite; }
+      .s5-cmd    { clip-path: inset(0 100% 0 0); animation: type-s5 18s linear infinite; }
+      .s5-spin1  { opacity: 0; animation: spin-1 18s step-end infinite; }
+      .s5-spin2  { opacity: 0; animation: spin-2 18s step-end infinite; }
+      .s5-spin3  { opacity: 0; animation: spin-3 18s step-end infinite; }
+      .s5-spin4  { opacity: 0; animation: spin-4 18s step-end infinite; }
+      .s5-ans    { opacity: 0; animation: show-s5-ans 18s step-end infinite; }
+
+      /* Final idle prompt + blinking cursor */
+      .s6-prompt { opacity: 0; animation: show-s6-prompt 18s step-end infinite; }
+      .cur-final { opacity: 0; animation: blink-final 18s step-end infinite; }
+      .cur-s1    { opacity: 0; animation: cur-track-s1 18s linear infinite; }
+      .cur-s2    { opacity: 0; animation: cur-track-s2 18s linear infinite; }
+      .cur-s3a   { opacity: 0; animation: cur-track-s3a 18s linear infinite; }
+      .cur-s3b   { opacity: 0; animation: cur-track-s3b 18s linear infinite; }
+      .cur-s4    { opacity: 0; animation: cur-track-s4 18s linear infinite; }
+      .cur-s5    { opacity: 0; animation: cur-track-s5 18s linear infinite; }
+
+      /* Typing clip-path keyframes (18s = 100%) */
+      /* 0.4s=2.2%, 1.4s=7.8% */
+      @keyframes type-s1 {
+        0%, 2.2% { clip-path: inset(0 100% 0 0); }
+        7.8%, 99.5% { clip-path: inset(0 0% 0 0); }
+        100% { clip-path: inset(0 100% 0 0); }
+      }
+      @keyframes cur-track-s1 {
+        0%, 2.1% { opacity: 1; transform: translateX(0px); }
+        2.2% { opacity: 1; transform: translateX(0px); }
+        7.8% { opacity: 1; transform: translateX(102px); }
+        9.4% { opacity: 1; transform: translateX(102px); }
+        9.5%, 100% { opacity: 0; transform: translateX(102px); }
+      }
+      @keyframes show-s1-out {
+        0%, 9.8% { opacity: 0; }
+        9.9%, 99.5% { opacity: 1; }
+        100% { opacity: 0; }
+      }
+
+      /* Step 2: prompt 2.2s=12.2%, type 2.4s=13.3%..3.2s=17.8% */
+      @keyframes show-s2-prompt {
+        0%, 12.1% { opacity: 0; }
+        12.2%, 99.5% { opacity: 1; }
+        100% { opacity: 0; }
+      }
+      @keyframes type-s2 {
+        0%, 13.3% { clip-path: inset(0 100% 0 0); }
+        17.8%, 99.5% { clip-path: inset(0 0% 0 0); }
+        100% { clip-path: inset(0 100% 0 0); }
+      }
+      @keyframes cur-track-s2 {
+        0%, 12.1% { opacity: 0; transform: translateX(0px); }
+        12.2%, 13.3% { opacity: 1; transform: translateX(0px); }
+        17.8%, 19.0% { opacity: 1; transform: translateX(79px); }
+        19.1%, 100% { opacity: 0; transform: translateX(79px); }
+      }
+      @keyframes show-s2-o1 { 0%, 19.3% { opacity: 0; } 19.4%, 99.5% { opacity: 1; } 100% { opacity: 0; } }
+      @keyframes show-s2-o2 { 0%, 20.5% { opacity: 0; } 20.6%, 99.5% { opacity: 1; } 100% { opacity: 0; } }
+      @keyframes show-s2-o3 { 0%, 21.7% { opacity: 0; } 21.8%, 99.5% { opacity: 1; } 100% { opacity: 0; } }
+      @keyframes show-s2-o4 { 0%, 22.9% { opacity: 0; } 23.0%, 99.5% { opacity: 1; } 100% { opacity: 0; } }
+
+      /* Step 3: mcp add prompt 4.6s=25.5%, line1 26.5%..33.0%, line2 33.2%..37.5%, out 39.2% */
+      @keyframes show-s3-prompt { 0%, 25.4% { opacity: 0; } 25.5%, 99.5% { opacity: 1; } 100% { opacity: 0; } }
+      @keyframes type-s3a {
+        0%, 26.5% { clip-path: inset(0 100% 0 0); }
+        33.0%, 99.5% { clip-path: inset(0 0% 0 0); }
+        100% { clip-path: inset(0 100% 0 0); }
+      }
+      @keyframes cur-track-s3a {
+        0%, 25.4% { opacity: 0; transform: translateX(0px); }
+        25.5%, 26.5% { opacity: 1; transform: translateX(0px); }
+        33.0% { opacity: 1; transform: translateX(486px); }
+        33.1%, 100% { opacity: 0; transform: translateX(486px); }
+      }
+      @keyframes type-s3b {
+        0%, 33.2% { clip-path: inset(0 100% 0 0); }
+        37.8%, 99.5% { clip-path: inset(0 0% 0 0); }
+        100% { clip-path: inset(0 100% 0 0); }
+      }
+      @keyframes cur-track-s3b {
+        0%, 33.1% { opacity: 0; transform: translateX(0px); }
+        33.2% { opacity: 1; transform: translateX(0px); }
+        37.8%, 38.8% { opacity: 1; transform: translateX(344px); }
+        38.9%, 100% { opacity: 0; transform: translateX(344px); }
+      }
+      @keyframes show-s3-out { 0%, 39.2% { opacity: 0; } 39.3%, 99.5% { opacity: 1; } 100% { opacity: 0; } }
+
+      /* Step 4: mcp list prompt 41.5%, type 42.3%..46.2%, out 47.8%, 49.0% */
+      @keyframes show-s4-prompt { 0%, 41.4% { opacity: 0; } 41.5%, 99.5% { opacity: 1; } 100% { opacity: 0; } }
+      @keyframes type-s4 {
+        0%, 42.3% { clip-path: inset(0 100% 0 0); }
+        46.2%, 99.5% { clip-path: inset(0 0% 0 0); }
+        100% { clip-path: inset(0 100% 0 0); }
+      }
+      @keyframes cur-track-s4 {
+        0%, 41.4% { opacity: 0; transform: translateX(0px); }
+        41.5%, 42.3% { opacity: 1; transform: translateX(0px); }
+        46.2%, 47.4% { opacity: 1; transform: translateX(95px); }
+        47.5%, 100% { opacity: 0; transform: translateX(95px); }
+      }
+      @keyframes show-s4-o1 { 0%, 47.8% { opacity: 0; } 47.9%, 99.5% { opacity: 1; } 100% { opacity: 0; } }
+      @keyframes show-s4-o2 { 0%, 49.0% { opacity: 0; } 49.1%, 99.5% { opacity: 1; } 100% { opacity: 0; } }
+
+      /* Step 5: agy -p prompt 51.8%, type 52.8%..62.0%, spinner 62.8%..69.2%, answer 69.3% */
+      @keyframes show-s5-prompt { 0%, 51.7% { opacity: 0; } 51.8%, 99.5% { opacity: 1; } 100% { opacity: 0; } }
+      @keyframes type-s5 {
+        0%, 52.8% { clip-path: inset(0 100% 0 0); }
+        62.0%, 99.5% { clip-path: inset(0 0% 0 0); }
+        100% { clip-path: inset(0 100% 0 0); }
+      }
+      @keyframes cur-track-s5 {
+        0%, 51.7% { opacity: 0; transform: translateX(0px); }
+        51.8%, 52.8% { opacity: 1; transform: translateX(0px); }
+        62.0%, 62.6% { opacity: 1; transform: translateX(428px); }
+        62.7%, 100% { opacity: 0; transform: translateX(428px); }
+      }
+      @keyframes spin-1 { 0%, 62.7% { opacity: 0; } 62.8%, 64.3% { opacity: 1; } 64.4%, 100% { opacity: 0; } }
+      @keyframes spin-2 { 0%, 64.3% { opacity: 0; } 64.4%, 65.9% { opacity: 1; } 66.0%, 100% { opacity: 0; } }
+      @keyframes spin-3 { 0%, 65.9% { opacity: 0; } 66.0%, 67.5% { opacity: 1; } 67.6%, 100% { opacity: 0; } }
+      @keyframes spin-4 { 0%, 67.5% { opacity: 0; } 67.6%, 69.2% { opacity: 1; } 69.3%, 100% { opacity: 0; } }
+      @keyframes show-s5-ans { 0%, 69.2% { opacity: 0; } 69.3%, 99.5% { opacity: 1; } 100% { opacity: 0; } }
+
+      /* Final idle prompt 71.2%..99.5% (5.1s hold) */
+      @keyframes show-s6-prompt { 0%, 71.1% { opacity: 0; } 71.2%, 99.5% { opacity: 1; } 100% { opacity: 0; } }
+      @keyframes blink-final {
+        0%, 71.1% { opacity: 0; }
+        71.2%, 74.2% { opacity: 1; }
+        74.3%, 77.3% { opacity: 0; }
+        77.4%, 80.4% { opacity: 1; }
+        80.5%, 83.5% { opacity: 0; }
+        83.6%, 86.6% { opacity: 1; }
+        86.7%, 89.7% { opacity: 0; }
+        89.8%, 92.8% { opacity: 1; }
+        92.9%, 95.9% { opacity: 0; }
+        96.0%, 99.4% { opacity: 1; }
+        99.5%, 100% { opacity: 0; }
+      }
+    </style>
+  </defs>
+
+  <!-- macOS iTerm2 Window Frame -->
+  <rect x="0" y="0" width="920" height="480" rx="11" fill="#0d1117" stroke="#30363d" stroke-width="1.5"/>
+  <path d="M 1 11 A 10 10 0 0 1 11 1 L 909 1 A 10 10 0 0 1 919 11 L 919 36 L 1 36 Z" fill="#161b22"/>
+  <line x1="1" y1="36" x2="919" y2="36" stroke="#30363d" stroke-width="1"/>
+  <circle cx="22" cy="18.5" r="6" fill="#ff5f56"/>
+  <circle cx="42" cy="18.5" r="6" fill="#ffbd2e"/>
+  <circle cx="62" cy="18.5" r="6" fill="#27c93f"/>
+  <text x="460" y="23" text-anchor="middle" class="title">build-beyond-limits | zsh | agy (iTerm2)</text>
+
+  <!-- Step 1: version check -->
+  <g class="s1-prompt">
+    <text x="22" y="68" class="term" xml:space="preserve"><tspan class="p-dir">~/build-beyond-limits</tspan> <tspan class="p-sym">$</tspan></text>
+  </g>
+  <g class="s1-cmd">
+    <text x="208" y="68" class="term" xml:space="preserve"><tspan class="cmd">agy</tspan> <tspan class="flag">--version</tspan></text>
+  </g>
+  <rect class="cur-s1" x="208" y="55" width="8" height="16" fill="#58a6ff"/>
+  <g class="s1-out">
+    <text x="22" y="88" class="term out">agy 1.5.12</text>
+  </g>
+
+  <!-- Step 2: agy models -->
+  <g class="s2-prompt">
+    <text x="22" y="120" class="term" xml:space="preserve"><tspan class="p-dir">~/build-beyond-limits</tspan> <tspan class="p-sym">$</tspan></text>
+  </g>
+  <g class="s2-cmd">
+    <text x="208" y="120" class="term" xml:space="preserve"><tspan class="cmd">agy</tspan> <tspan class="arg">models</tspan></text>
+  </g>
+  <rect class="cur-s2" x="208" y="107" width="8" height="16" fill="#58a6ff"/>
+  <g class="s2-o1">
+    <text x="22" y="140" class="term dim">Available models (* = default):</text>
+  </g>
+  <g class="s2-o2">
+    <text x="22" y="160" class="term" xml:space="preserve"><tspan class="star">*</tspan> <tspan class="ok">gemini-4-carbon-high</tspan></text>
+    <text x="242" y="160" class="term dim">Gemini 4 Carbon (High)</text>
+  </g>
+  <g class="s2-o3">
+    <text x="22" y="180" class="term" xml:space="preserve">  <tspan class="str">gemini-4-neon-high</tspan></text>
+    <text x="242" y="180" class="term dim">Gemini 4 Neon (High)</text>
+  </g>
+  <g class="s2-o4">
+    <text x="22" y="200" class="term" xml:space="preserve">  <tspan class="arg">gemini-4-hydrogen-high</tspan></text>
+    <text x="242" y="200" class="term dim">Gemini 4 Hydrogen (High)</text>
+  </g>
+
+  <!-- Step 3a: agy mcp add -->
+  <g class="s3-prompt">
+    <text x="22" y="232" class="term" xml:space="preserve"><tspan class="p-dir">~/build-beyond-limits</tspan> <tspan class="p-sym">$</tspan></text>
+  </g>
+  <g class="s3-cmd1">
+    <text x="208" y="232" class="term" xml:space="preserve"><tspan class="cmd">agy</tspan> <tspan class="arg">mcp add</tspan> <tspan class="flag">--env</tspan> <tspan class="str">BBL_SERVER_URL=http://34.158.215.133:8080</tspan> <tspan class="dim">\</tspan></text>
+  </g>
+  <rect class="cur-s3a" x="208" y="219" width="8" height="16" fill="#58a6ff"/>
+  <g class="s3-cmd2">
+    <text x="208" y="252" class="term" xml:space="preserve"><tspan class="dim">&gt;</tspan> <tspan class="ok">bbl-roguelike</tspan> <tspan class="arg">node ./mcp-server/index.mjs</tspan></text>
+  </g>
+  <rect class="cur-s3b" x="208" y="239" width="8" height="16" fill="#58a6ff"/>
+  <g class="s3-out">
+    <text x="22" y="272" class="term ok">✓ Added MCP server "bbl-roguelike" (stdio)</text>
+  </g>
+
+  <!-- Step 3b: agy mcp list -->
+  <g class="s4-prompt">
+    <text x="22" y="304" class="term" xml:space="preserve"><tspan class="p-dir">~/build-beyond-limits</tspan> <tspan class="p-sym">$</tspan></text>
+  </g>
+  <g class="s4-cmd">
+    <text x="208" y="304" class="term" xml:space="preserve"><tspan class="cmd">agy</tspan> <tspan class="arg">mcp list</tspan></text>
+  </g>
+  <rect class="cur-s4" x="208" y="291" width="8" height="16" fill="#58a6ff"/>
+  <g class="s4-o1">
+    <text x="22" y="324" class="term dim">NAME</text>
+    <text x="165" y="324" class="term dim">TRANSPORT</text>
+    <text x="275" y="324" class="term dim">COMMAND</text>
+    <text x="530" y="324" class="term dim">STATUS</text>
+  </g>
+  <g class="s4-o2">
+    <text x="22" y="344" class="term str">bbl-roguelike</text>
+    <text x="165" y="344" class="term out">stdio</text>
+    <text x="275" y="344" class="term out">node ./mcp-server/index.mjs</text>
+    <text x="530" y="344" class="term ok">● enabled</text>
+  </g>
+
+  <!-- Step 4: model prompt run -->
+  <g class="s5-prompt">
+    <text x="22" y="378" class="term" xml:space="preserve"><tspan class="p-dir">~/build-beyond-limits</tspan> <tspan class="p-sym">$</tspan></text>
+  </g>
+  <g class="s5-cmd">
+    <text x="208" y="378" class="term" xml:space="preserve"><tspan class="cmd">agy</tspan> <tspan class="flag">--model</tspan> <tspan class="str">gemini-4-carbon-low</tspan> <tspan class="flag">-p</tspan> <tspan class="str">"한 줄로 인사해 줘"</tspan></text>
+  </g>
+  <rect class="cur-s5" x="208" y="365" width="8" height="16" fill="#58a6ff"/>
+
+  <!-- Interactive thinking spinner -->
+  <text x="22" y="400" class="term spin s5-spin1">⠋ Thinking...</text>
+  <text x="22" y="400" class="term spin s5-spin2">⠙ Thinking...</text>
+  <text x="22" y="400" class="term spin s5-spin3">⠹ Thinking...</text>
+  <text x="22" y="400" class="term spin s5-spin4">⠸ Thinking...</text>
+
+  <!-- Real agy response -->
+  <g class="s5-ans">
+    <text x="22" y="400" class="term ans">안녕하세요! 오늘도 좋은 하루 보내세요.</text>
+  </g>
+
+  <!-- Final interactive prompt with blinking block cursor -->
+  <g class="s6-prompt">
+    <text x="22" y="438" class="term" xml:space="preserve"><tspan class="p-dir">~/build-beyond-limits</tspan> <tspan class="p-sym">$</tspan></text>
+  </g>
+  <rect class="cur-final" x="208" y="425" width="8" height="16" fill="#58a6ff"/>
+</svg>
