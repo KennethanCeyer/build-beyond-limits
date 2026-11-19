@@ -814,29 +814,8 @@ build-beyond-limits/
 
 ---
 
-## 오픈소스 및 에셋 라이선스 출처
+## 에셋 출처 및 라이선스
 
-이 리포지토리에서 사용하거나 인용한 모든 외부 에셋, 브랜드 로고, 오픈소스 도구와 규격의 출처 및 라이선스는 아래와 같습니다.
-
-### 에셋 및 시각 자료 출처
-
-| 리소스 | 파일 경로 | 원저작자 / 출처 | 라이선스 및 고지 |
-| :--- | :--- | :--- | :--- |
-| **0x72 16x16 DungeonTileset II (v1.7)** | [`assets/tileset/dungeon_autotile_16x16.png`](./assets/tileset/dungeon_autotile_16x16.png), [`assets/tileset/tile_list_v1.7`](./assets/tileset/tile_list_v1.7) | Robert Norenberg ([0x72.itch.io/dungeontileset-ii](https://0x72.itch.io/dungeontileset-ii)) | **CC0 1.0 Universal** (퍼블릭 도메인, 전문: [`LICENSE_CC0.txt`](./assets/tileset/LICENSE_CC0.txt)). 원본 시트에 2.5D 고벽·그림자·방패 4종·불사조의 깃털·고대 비전서 픽셀 스프라이트를 합쳐 구성했습니다. |
-| **Model Context Protocol (MCP) 로고** | [`assets/logos/mcp-logo.svg`](./assets/logos/mcp-logo.svg), [`assets/logos/mcp-logo-dark.svg`](./assets/logos/mcp-logo-dark.svg) | Model Context Protocol ([modelcontextprotocol.io](https://modelcontextprotocol.io)) | **MIT License** |
-| **Google Antigravity · Gemini 로고** | [`assets/logos/antigravity-logo.svg`](./assets/logos/antigravity-logo.svg), [`assets/logos/gemini-logo.svg`](./assets/logos/gemini-logo.svg) (다크 변형 포함) | Google LLC ([antigravity.google](https://antigravity.google), [deepmind.google](https://deepmind.google)) | 공식 브랜드 상표 및 로고입니다. 상표권과 저작권은 Google LLC에 귀속되며 문서 안내 목적으로만 포함했습니다. |
-| **Gemini 4 공식 벤치마크 차트 및 수치** | [`assets/gemini-4-benchmarks.png`](./assets/gemini-4-benchmarks.png) | Google DeepMind ([Google 공식 발표 블로그](https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-gemini-4-neon/), [Gemini 4 모델 카드](https://deepmind.google/models/model-cards/gemini-4-neon/)) | 공식 공개 벤치마크 자료를 출처 명시 후 교육·참고 목적으로 인용했습니다. |
-| **API 키 발급 화면 안내 이미지** | [`assets/guide-aistudio-apikey.png`](./assets/guide-aistudio-apikey.png), [`assets/guide-gcp-apikey.png`](./assets/guide-gcp-apikey.png) | Google AI Studio / Google Cloud Console 화면 안내 | 각 웹 콘솔 인터페이스의 저작권은 Google LLC에 귀속됩니다. |
-| **핸즈온 프로젝트 제작 자료** | [`assets/logo.png`](./assets/logo.png), [`assets/agy-cli-guide.svg`](./assets/agy-cli-guide.svg), [`assets/guide-tileset-map.png`](./assets/guide-tileset-map.png), [`assets/preview-client-combat.gif`](./assets/preview-client-combat.gif), [`assets/preview-client-magic.gif`](./assets/preview-client-magic.gif), [`assets/preview-broadcast.gif`](./assets/preview-broadcast.gif) | Build Beyond Limits 핸즈온 제작 | 본 핸즈온 문서·예시·콘솔 안내를 위해 제작되었습니다. |
-
-### 오픈소스 소프트웨어 및 표준 규격
-
-- **리포지토리 내 스크립트 무의존성 안내**: [`mcp-server/index.mjs`](./mcp-server/index.mjs)와 [`.agents/skills/submit-mission/scripts/submit.mjs`](./.agents/skills/submit-mission/scripts/submit.mjs)는 외부 npm 패키지 의존성 없이 **Node.js 20+ 표준 내장 모듈**만으로 작성되었습니다.
-- **실습 환경 및 명세 활용 오픈소스·표준**:
-  - [Node.js](https://nodejs.org/): MIT License
-  - [Git](https://git-scm.com/): GNU GPL v2.0
-  - [Model Context Protocol (MCP)](https://github.com/modelcontextprotocol/specification): MIT License
-  - [Mermaid](https://mermaid.js.org/): MIT License (문서 아키텍처·시퀀스 다이어그램 표기)
-  - [IETF RFC 7692 (`perMessageDeflate`)](https://datatracker.ietf.org/doc/html/rfc7692): WebSocket 압축 전송 표준 규격
-
-> 참가자가 자신만의 클라이언트에 외부 오픈소스 라이브러리(예: Vite, React, Phaser, PixiJS)나 별도의 무료 에셋·음원을 추가하는 경우, 해당 프로젝트와 에셋의 라이선스 및 출처 표기 조건을 확인해 함께 준수해 주세요.
+- **캐릭터 · 몬스터 · 던전 스프라이트 타일셋**: [0x72 16x16 DungeonTileset II (v1.7)](https://0x72.itch.io/dungeontileset-ii) by Robert Norenberg (0x72)
+  - 파일: [`assets/tileset/dungeon_autotile_16x16.png`](./assets/tileset/dungeon_autotile_16x16.png), [`assets/tileset/tile_list_v1.7`](./assets/tileset/tile_list_v1.7)
+  - 라이선스: **CC0 1.0 Universal** ([`assets/tileset/LICENSE_CC0.txt`](./assets/tileset/LICENSE_CC0.txt), [라이선스 전문](https://creativecommons.org/publicdomain/zero/1.0/))
