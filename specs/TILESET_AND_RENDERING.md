@@ -15,7 +15,7 @@
 | :--- | :--- | :--- |
 | `y: 0..511` | 바닥, 가시 함정, 룬 버튼, 석주, 영웅 8종, 몬스터 17종, 보스, 무기, 하트, 물약, 상자 | `floor_1..8`, `floor_spikes_anim_f0..3`, `button_blue_up/down`, `ui_heart_full/half/empty`, `column`, `knight_m_*`, `big_demon_*`, `weapon_*`, `flask_*` |
 | `x: 0..383, y: 512..639` | 2.5D 남향 고벽(`16×32`), 벽면 용암 및 치유 분수, 깃발 | `wh_single`, `wh_brick_l/m/r/alt`, `wh_lava_f0..2`, `wh_blue_f0..2`, `wh_banner_red/blue` |
-| `x: 384..495, y: 512..623` | 벽면 바닥 그림자 오버레이 | `floor_shadow_0..3` |
+| `x: 432..495, y: 512..527` | 벽면 바닥 그림자 오버레이 | `floor_shadow_0..3` |
 | `x: 384..511, y: 608..639` | 방패 4종, 갑옷 4종, 불사조의 깃털, 고대 비전서 (`16×16`) | `shield_wood`, `shield_iron`, `shield_knight`, `shield_heroic`, `armor_leather`, `armor_steel`, `armor_dragonscale`, `armor_abyssal`, `item_phoenix_feather`, `item_skill_book` |
 
 ### 스프라이트 종류별 그리기 기준 좌표 (`drawImage`)
@@ -60,7 +60,7 @@
 | `10` | `DOOR` | O | X | 구역 연결 통로 |
 | `11` | `LAVA_PIT` | X | X | 용암 구덩이 (픽셀 용암 애니메이션 + 주황 광원) |
 | `12` | `LAVA_WALL` | X | X | 벽면 용암 분수 (`wh_brick_m` + `wh_lava_f0..2` + 붉은 광원) |
-| `13` | `HEAL_WALL` | X | O | 성소 벽면 치유 분수 (`wh_brick_m` + `wh_blue_f0..2` + 푸른 광원) |
+| `13` | `HEAL_WALL` | X | X | 성소 벽면 치유 분수 (`wh_brick_m` + `wh_blue_f0..2` + 푸른 광원, 이동 불가 벽 타일) |
 | `14` | `SEALED_GATE` | X (`gateOpen` 시 `6`으로 변경) | X | 봉인의 문 (`map.gateTiles`, `x=52, y=8..11` 세로 4칸). `!state.puzzle.gateOpen` 동안 각 `16×16` 타일에 황금 봉인 창살을 그리며, 퍼즐 완료 시 `gateOpen = true`로 열립니다. |
 | `15` | `RUNE_PAD` | O | X | 4룬 퍼즐 발판 (`map.runePads`, `state.puzzle.pads`): `floor_1` 위에 `button_blue_up/down`과 `pad.id`(`blue`, `red`, `green`, `gold`)별 `pad.color`(`#58b4ff`, `#ff5c5c`, `#68d67a`, `#f0c869`) 문양을 그리고, `state.puzzle.litRunes`에 포함되면 밝은 광원을 켭니다. |
 

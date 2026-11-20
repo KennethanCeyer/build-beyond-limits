@@ -40,7 +40,7 @@ sequenceDiagram
 
 ### 구현 순서 체크리스트
 1. 계정 등록 및 토큰 동기화 (`POST /api/register`, `?token=`): URL 쿼리에 `?token=<TOKEN>`이 있으면 그 토큰을 먼저 쓰고, 없으면 `localStorage`(`bbl_player_identity_v1`)를 확인한 뒤 최초 1회 `POST /api/register`를 호출해 코드네임, 인증 `token`, 6자리 `verifyCode`를 저장합니다.
-2. WebSocket 연결: `ws://<HOST>:8080/ws?token=<token>`에 `ws.binaryType = 'arraybuffer'`로 연결합니다. 기본 전송은 `BBL-BIN v1` 바이너리 + `perMessageDeflate` 압축이며, 디버깅 시에만 `&encoding=json`을 붙입니다.
+2. WebSocket 연결: `ws://<HOST>:8080/ws?token=<token>`에 `ws.binaryType = 'arraybuffer'`로 연결합니다. 기본 전송은 `BBL-BIN v1` 바이너리(비압축 저지연 프레임)이며, 디버깅 시에만 `&encoding=json`을 붙입니다.
 3. `map_init` 처리:
    - 맵 타일, 구역 좌표, 몬스터 동작, 직업과 스킬 목록을 로컬에 하드코딩하지 않고 `map_init`의 `map.width`(72), `map.height`(52), `map.tiles[y][x]`, `map.zones[]`, `map.bossArena`, `map.runePads[]`, `map.gateTiles[]`, `map.dartShooters[]` 및 `rules`를 저장합니다.
    - `httpBase + map_init.tileset.sheetUrl`(`/assets/tileset/dungeon_autotile_16x16.png?v=2.5`)로 이미지를 불러옵니다(`img.crossOrigin = 'anonymous'`).
@@ -117,7 +117,7 @@ Base URL 접두 경로: `http://34.158.215.133:8080/api/*` *(단독 `GET /api` �
 `map_init.map`과 동일한 구조(`width`, `height`, `tiles`, `zones`, `bossArena`, `runePads`, `gateTiles`, `dartShooters`)를 반환합니다. `Accept-Encoding: gzip` 요청 시 사전 압축된 `gzip` 응답을 전달합니다.
 
 ### `GET /api/tileset`
-통합 512×640 타일셋 매니페스트(`sheetUrl`, `tileSize`, `sprites`, `tileMapping`)를 조회합니다(`Accept-Encoding: gzip` 요청 시 사전 압축 응답).
+통합 512×640 타일셋 매니페스트(`sheetUrl`, `tileSize`, `sprites`, `tileTypes`)를 조회합니다(`Accept-Encoding: gzip` 요청 시 사전 압축 응답).
 
 ### 호스트 갤러리 제출 (`POST http://34.158.215.133:8081/api/gallery/submit`)
 완성한 클라이언트 웹 번들과 썸네일을 1인 1항목 갱신(Upsert) 방식으로 제출합니다(`.agents/skills/submit-client/scripts/submit-client.mjs` 사용).
@@ -139,25 +139,26 @@ Base URL 접두 경로: `http://34.158.215.133:8080/api/*` *(단독 `GET /api` �
 
 ## WebSocket 메시지 스키마
 
-- 플레이어 접속 (기본값: 바이너리 `BBL-BIN v1` + RFC 7692 `perMessageDeflate` 압축): `ws://34.158.215.133:8080/ws?token=<token>&skin=<optionalSkin>`
+- 플레이어 접속 (기본값: 바이너리 `BBL-BIN v1` 비압축 저지연 프레임): `ws://34.158.215.133:8080/ws?token=<token>&skin=<optionalSkin>`
 - 플레이어 접속 (디버깅용 JSON 선택): `ws://34.158.215.133:8080/ws?token=<token>&encoding=json`
 - 지연 시간 측정: 바이너리 `0x0F C2S_PING` (5바이트) -> `0x8F S2C_PONG` (9바이트), 또는 JSON `{ "type": "ping" }` -> `{ "type": "pong", "serverTime": ... }`
 
 ---
 
-## 바이너리 패킷 및 압축 전송 (`BBL-BIN v1` + `perMessageDeflate`)
+## 바이너리 패킷 전송 (`BBL-BIN v1`) 및 `perMessageDeflate` 설정
 
-- `/ws` 엔드포인트 기본값은 리틀 엔디안 바이너리 프레임(`BBL-BIN v1`) + RFC 7692 `perMessageDeflate` 슬라이딩 윈도우 압축입니다.
+- `/ws` 엔드포인트 기본값은 리틀 엔디안 바이너리 프레임(`BBL-BIN v1`)입니다. 20~100명 동시 접속 시 서버 CPU와 지연을 낮추기 위해 20Hz `0x81 S2C_STATE` 브로드캐스트는 비압축(`compress: false`)으로 송신합니다.
+- 서버 WebSocket의 RFC 7692 `perMessageDeflate`는 `clientNoContextTakeover: true`, `serverNoContextTakeover: true`, `threshold: 8192`로 설정되어 있어 `map_init` 같은 대용량 텍스트 프레임에만 선별 적용됩니다.
 - 클라이언트에서 `ws.binaryType = 'arraybuffer'`를 지정하면 초기 제어 메시지(`map_init`, `welcome`)는 텍스트 JSON으로, 20Hz 상태(`0x81`)와 `pong`(`0x8F`)은 바이너리 `ArrayBuffer`로 수신됩니다.
 - 디버깅 시 평문 JSON이 필요하면 `?encoding=json` 쿼리를 붙입니다. C2S 송신은 어느 모드에서나 바이너리와 JSON(`type: "input" | "action" | "ping"`)을 모두 수락합니다.
 
 ### 패킷 크기 비교 (플레이어 10명, 몬스터 25마리 기준)
 
-| 메시지 | 평문 JSON | 바이너리 (`BBL-BIN v1`) | 바이너리 + Deflate 압축 | 절감률 |
-| :--- | :---: | :---: | :---: | :---: |
-| 20Hz 월드 상태 (`state` + `me`) | `22,213 bytes` | `4,258 bytes` | `2,658 bytes` | 약 88% |
-| 이동 입력 (`input`) | `38 bytes` | `7 bytes` | `7 bytes` (`<512B` 압축 생략) | 약 82% |
-| `ping` / `pong` | `15 / 38 bytes` | `5 / 9 bytes` | `5 / 9 bytes` | 약 75% |
+| 메시지 | 평문 JSON | 바이너리 (`BBL-BIN v1`) | 전송 방식 | 절감률 |
+| :--- | :---: | :---: | :--- | :---: |
+| 20Hz 월드 상태 (`state` + `me`) | `22,213 bytes` | `4,258 bytes` | 바이너리 비압축 (`compress: false`) | 약 81% |
+| 이동 입력 (`input`) | `38 bytes` | `7 bytes` | 바이너리 비압축 (`<8192B`) | 약 82% |
+| `ping` / `pong` | `15 / 38 bytes` | `5 / 9 bytes` | 바이너리 비압축 (`<8192B`) | 약 75% |
 
 ### 양자화 및 문자열 풀 규칙
 - 월드 좌표 `(x, y)`: `uint16` = `Math.round(v * 100)` (`0.01` 타일 단위, 최대 `655.35` 타일, 2바이트)
@@ -252,7 +253,7 @@ Base URL 접두 경로: `http://34.158.215.133:8080/api/*` *(단독 `GET /api` �
 | `SKINS` | `0=knight_m`, `1=knight_f`, `2=wizzard_m`, `3=wizzard_f`, `4=elf_m`, `5=elf_f`, `6=dwarf_m`, `7=lizard_m` |
 | `WEAPON_CLASSES` | `0=melee`, `1=bow`, `2=staff` |
 | `RARITIES` | `0=null`, `1=common(일반)`, `2=rare(희귀)`, `3=unique(유니크)`, `4=legendary(전설)` |
-| `CLASSES` | `0=knight`, `1=ranger`, `2=mage`, `3=berserker` (`Private me` 직업 미선택 시 `255=null`) |
+| `CLASSES` | `0=knight`, `1=ranger`, `2=mage`, `3=berserker` (직업 미선택 시에도 기본값 `0=knight`로 인코딩되며 미선택 여부는 `meFlags bit0` `classChosen`으로 판별) |
 | `SKILLS` | `0=null`, `1=crimson_tempest`, `2=frost_nova`, `3=phantom_lunge`, `4=abyssal_lance`, `5=solar_judgment`, `6=soul_reaver` |
 | `ARCHETYPES` | `0=skirmisher`, `1=bruiser`, `2=ranged`, `3=elite`, `4=boss` |
 | `AI_STATES` | `0=patrol`, `1=combat`, `2=windup`, `3=recovery`, `4=leash` |
@@ -380,9 +381,9 @@ Base URL 접두 경로: `http://34.158.215.133:8080/api/*` *(단독 `GET /api` �
 }
 ```
 
-### Server -> Client: `state` (초당 20회, 기본 바이너리 `0x81 S2C_STATE` + Deflate)
+### Server -> Client: `state` (초당 20회, 기본 바이너리 `0x81 S2C_STATE`)
 
-> 기본 연결(`/ws?token=...`)에서는 위 `0x81 S2C_STATE` 바이너리 프레임에 RFC 7692 `perMessageDeflate` 압축을 적용해 전송합니다. 아래 JSON 구조는 바이너리 프레임을 디코딩했을 때 얻어지는 논리 객체(또는 `?encoding=json` 디버깅 연결의 응답 구조)입니다.
+> 기본 연결(`/ws?token=...`)에서는 위 `0x81 S2C_STATE` 바이너리 프레임(비압축 저지연 전송)을 수신합니다. 아래 JSON 구조는 바이너리 프레임을 디코딩했을 때 얻어지는 논리 객체(또는 `?encoding=json` 디버깅 연결의 응답 구조)입니다.
 
 ```json
 {

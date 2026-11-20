@@ -144,16 +144,20 @@ MCP는 에이전트가 외부 서버나 로컬 도구와 표준 JSON-RPC 규격�
 
 ### `agy`에 `bbl-roguelike` 등록하기
 
-리포지토리에 포함된 [`.agents/mcp_config.json`](./.agents/mcp_config.json) 덕분에 `build-beyond-limits` 루트에서 `agy`나 Antigravity IDE를 실행하면 워크스페이스 범위로 자동 연결됩니다.
+리포지토리에 포함된 워크스페이스 플러그인([`.agents/plugins/bbl-roguelike/`](./.agents/plugins/bbl-roguelike/plugin.json)) 덕분에 `build-beyond-limits` 루트에서 `agy`나 Antigravity IDE를 실행하면 `bbl-roguelike` MCP 서버가 자동으로 연결됩니다. 실행 후 대화창에서 `/mcp`를 입력하면 연결 상태와 도구 6개를 확인할 수 있습니다.
 
-전역 설정(`~/.gemini/config/mcp_config.json`)에 등록해 `agy mcp list`로 확인하려면 리포지토리 루트에서 아래 명령을 실행합니다.
+어느 디렉터리에서든 사용할 수 있게 전역 설정(`~/.gemini/config/mcp_config.json`)에 등록하려면 리포지토리 루트에서 **절대 경로**로 아래 명령을 실행합니다.
 
 ```bash
-agy mcp add --env BBL_SERVER_URL=http://34.158.215.133:8080 bbl-roguelike node ./mcp-server/index.mjs
+# macOS / Linux
+agy mcp add --env BBL_SERVER_URL=http://34.158.215.133:8080 bbl-roguelike node "$(pwd)/mcp-server/index.mjs"
 agy mcp list
+
+# Windows PowerShell
+agy mcp add --env BBL_SERVER_URL=http://34.158.215.133:8080 bbl-roguelike node "$PWD\mcp-server\index.mjs"
 ```
 
-설정 파일을 직접 편집할 때는 워크스페이스 경로(`.agents/mcp_config.json`) 또는 전역 경로(`~/.gemini/config/mcp_config.json`, `<리포지토리_절대경로>` 치환)에 아래 항목을 추가합니다. 자세한 규격은 [Antigravity MCP 문서](https://antigravity.google/docs/mcp)를 참고하세요.
+설정 파일을 직접 편집할 때는 전역 경로(`~/.gemini/config/mcp_config.json`, `<리포지토리_절대경로>` 치환)에 아래 항목을 추가합니다. 자세한 규격은 [Antigravity MCP 문서](https://antigravity.google/docs/mcp)를 참고하세요.
 
 ```json
 {
@@ -176,7 +180,7 @@ agy mcp list
 | `get_protocol_contract` | 접속 절차, 바이너리 패킷, 상태 및 이벤트 스키마, 전투와 패링, 스킬, 장비, 보스, 퍼즐, 함정, 타일셋 규칙을 주제별로 조회 |
 | `get_asset_manifest` | `heroes`, `weapons`, `armors`, `shields`, `monsters`, `walls`, `hearts`, `traps`, `puzzle`, `potions` 분류별 스프라이트 좌표 조회 |
 | `inspect_live_world` | 현재 접속자 수, 활성 보스 단계와 재등장 남은 시간, PvP 여부, 봉인의 제단 퍼즐 상태 조회 |
-| `inspect_player_state` | 코드네임 또는 토큰으로 서버 측 내 캐릭터 좌표, 체력, 스킬 레벨, `ackSeq` 조회 |
+| `inspect_player_state` | 코드네임, 공개 ID(`p_...`), 또는 토큰으로 서버 측 내 캐릭터 좌표, 체력, 스킬 레벨, `ackSeq` 조회 |
 | `validate_client_payload` | 클라이언트가 보낼 WebSocket 페이로드를 서버 규칙으로 사전 검증 |
 | `diagnose_server_health` | 라이브 서버 응답 지연 시간, 맵 크기, 타일셋 응답 상태 진단 |
 
@@ -253,7 +257,7 @@ agy --sandbox --mode=auto --model gemini-4-neon-high
 
 - `/goal <완료 조건>`: 단위 테스트 통과나 빌드 성공처럼 명확한 검증 기준을 주면 완료가 확인될 때까지 조기 종료 없이 수정과 재검증을 반복합니다.
   - 예: `/goal specs/PROTOCOL.md 기준으로 BBL-BIN v1 디코더를 작성하고 바이트 길이 일치 단위 테스트를 모두 통과시켜 줘`
-- `Orchestrator (Neon)`: `agy --model "Orchestrator (Neon)"`으로 시작하면 `Gemini 4 Neon`이 설계와 검토를 맡고 `Gemini 4 Hydrogen`이 파일 편집과 빌드를 빠르게 수행합니다.
+- `Orchestrator (Neon)`: `agy --model gemini-pro-orchestrator-neon`(표시명 `Orchestrator (Neon)`)으로 시작하면 `Gemini 4 Neon`이 설계와 검토를 맡고 `Gemini 4 Hydrogen`이 파일 편집과 빌드를 빠르게 수행합니다.
 - `/swarm <작업>`: 네트워크, 2.5D 렌더러, HUD처럼 파일 단위로 나뉘는 작업을 여러 워커와 전담 검증 에이전트(`@verifier`)에게 병렬로 배정합니다.
 
 </details>
@@ -361,7 +365,7 @@ agy --model gemini-4-neon-high
 | :--- | :--- |
 | `agy --model gemini-4-neon-high` | 권장 모델인 `Neon`으로 대화형 세션 시작. 루트의 [`AGENTS.md`](./AGENTS.md) 규칙이 자동 로드되며 종료는 `/exit` 또는 `Ctrl+D` |
 | `agy --sandbox --mode=auto --model gemini-4-neon-high` | OS 샌드박스 안에서 파일 편집과 테스트 실행을 승인 대기 없이 자동으로 진행 |
-| `agy --model "Orchestrator (Neon)"` | `Neon`이 설계와 검토를 맡고 `Hydrogen`이 코드 수정과 빌드를 빠르게 분담 |
+| `agy --model gemini-pro-orchestrator-neon` | `Orchestrator (Neon)`: `Neon`이 설계와 검토를 맡고 `Hydrogen`이 코드 수정과 빌드를 빠르게 분담 |
 | `agy --model gemini-4-hydrogen-medium` | 빠른 반복 수정용 권장 모델인 `Hydrogen`으로 대화형 세션 시작. 실행 중 변경은 대화창에서 `/model` 입력 |
 | `agy --model gemini-4-hydrogen-medium -p "요청 문구"` | 모델을 지정해 단발 프롬프트 실행 후 결과 출력 |
 | `agy models` | 현재 계정에서 사용 가능한 모델 목록 조회 |
@@ -379,7 +383,7 @@ agy --model gemini-4-neon-high
 2단계. 폴더 열기, Agent 패널 실행, MCP 확인
 1. 상단 메뉴 `File > Open Folder`로 클론한 `build-beyond-limits` 폴더를 엽니다.
 2. 우측 상단 패널 아이콘을 누르거나 macOS에서 `Cmd + L`, Windows와 Linux에서 `Ctrl + L`을 눌러 우측 Agent 패널을 엽니다.
-3. Agent 패널 우측 상단 `⋮ > MCP Servers`를 열어 [`.agents/mcp_config.json`](./.agents/mcp_config.json)에 정의된 `bbl-roguelike` 서버가 켜져 있는지 확인합니다.
+3. Agent 패널 우측 상단 `⋮ > MCP Servers`를 열어 워크스페이스 플러그인([`.agents/plugins/bbl-roguelike/mcp_config.json`](./.agents/plugins/bbl-roguelike/mcp_config.json))에 정의된 `bbl-roguelike` 서버가 켜져 있는지 확인합니다.
 
 ![Antigravity IDE 폴더 열기 및 MCP 서버 확인](./assets/guide-ide-step1-open.png)
 
@@ -467,7 +471,7 @@ agy --model gemini-4-neon-high
      }
    }
    ```
-2. 이후 50ms마다 초당 20회 주기로 `state`가 도착합니다. 기본 연결은 `0x81 S2C_STATE` 바이너리 압축 프레임으로 오며, 디코딩한 객체 구조는 아래와 같습니다.
+2. 이후 50ms마다 초당 20회 주기로 `state`가 도착합니다. 기본 연결은 `0x81 S2C_STATE` 바이너리 프레임(저지연 비압축 전송)으로 오며, 디코딩한 객체 구조는 아래와 같습니다.
    ```json
    {
      "type": "state",
@@ -710,7 +714,7 @@ node .agents/skills/submit-client/scripts/submit-client.mjs \
 ## 제출 전 점검 목록
 
 - [ ] Antigravity 인증을 마치고 권장 모델인 `Gemini 4 Neon` 또는 `Gemini 4 Hydrogen` 선택 확인하기
-- [ ] 워크스페이스 `.agents/mcp_config.json` 인식 확인 또는 `agy mcp add`로 `bbl-roguelike` 등록하기
+- [ ] 워크스페이스 플러그인(`.agents/plugins/bbl-roguelike/`) 자동 연결(`/mcp`) 또는 `agy mcp add`로 `bbl-roguelike` 등록 확인하기
 - [ ] 맵 지형이나 몬스터 동작을 하드코딩하지 않고 `map_init`과 `20Hz state`만으로 동작하는 클라이언트 구현하기
 - [ ] 이동, 공격, 강공격 차지, 방패 막기와 패링, 대시, 스킬, 아이템 줍기, 물약 사용, `ESC` 창 닫기 확인하기
 - [ ] 화면 테마와 효과음 및 배경음악 적용하기
@@ -744,7 +748,9 @@ build-beyond-limits/
 ├── mcp-server/
 │   └── index.mjs                 # 라이브 서버 계약, 에셋, 상태 조회용 로컬 MCP 서버
 ├── .agents/
-│   ├── mcp_config.json           # Antigravity 워크스페이스 MCP 서버 설정
+│   ├── mcp_config.json           # 호환용 워크스페이스 MCP 서버 설정
+│   ├── plugins/
+│   │   └── bbl-roguelike/        # Antigravity 워크스페이스 자동 로드 MCP 플러그인
 │   ├── rules/                    # 금지 사항, 런타임 함정 예방, 단계별 검증 규칙
 │   └── skills/
 │       ├── roguelike-protocol/   # 프로토콜, 렌더링, 전투 조회 스킬
@@ -754,9 +760,10 @@ build-beyond-limits/
 │   ├── TILESET_AND_RENDERING.md  # 타일 ID, 2.5D 벽과 모서리 규칙, 광원 렌더링 명세
 │   └── COMBAT_AND_VFX.md         # 체력과 부활, 전투와 스킬, 보스 패턴, 이벤트 명세
 └── assets/
-    └── tileset/                  # CC0 16x16 게임 타일셋 이미지 및 좌표 목록
+    └── tileset/                  # CC0 16x16 게임 타일셋 이미지, 좌표 목록, 라이선스
         ├── dungeon_autotile_16x16.png
-        └── tile_list_v1.7
+        ├── tile_list_v1.7
+        └── LICENSE_CC0.txt
 ```
 
 ---

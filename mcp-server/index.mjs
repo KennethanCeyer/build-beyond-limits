@@ -66,11 +66,11 @@ export const TOOLS = [
   {
     name: 'inspect_player_state',
     description:
-      'Debug a player in the live dungeon by codename or token. Returns server-authoritative position, hearts, guard/parry/charge state, skillTree, inventory, and ackSeq.',
+      'Debug a player in the live dungeon by codename, playerId (p_...), or registration token. Returns server-authoritative position, hearts, guard/parry/charge state, skillTree, inventory, and ackSeq.',
     inputSchema: {
       type: 'object',
       properties: {
-        query: { type: 'string', description: 'Player codename or registration token' },
+        query: { type: 'string', description: 'Player codename, public playerId (p_...), or registration token' },
       },
       required: ['query'],
     },
@@ -256,9 +256,14 @@ function isMainModule(metaUrl) {
   }
 }
 
-if (isMainModule(import.meta.url)) {
+export function startStdioServer() {
   const rl = readline.createInterface({ input: process.stdin, terminal: false });
   rl.on('line', (line) => {
     handleRpcLine(line);
   });
+  return rl;
+}
+
+if (isMainModule(import.meta.url)) {
+  startStdioServer();
 }

@@ -825,7 +825,11 @@ if (isMainModule(import.meta.url)) {
   (async () => {
     try {
       const args = parseCliArgs();
-      const defaultDir = fs.existsSync(path.resolve('my-client')) ? './my-client' : '.';
+      const defaultDir = fs.existsSync(path.resolve('client'))
+        ? './client'
+        : fs.existsSync(path.resolve('my-client'))
+          ? './my-client'
+          : '.';
       const result = await submitClientToGallery({
         title: args.title,
         description: args.desc || args.description || '',

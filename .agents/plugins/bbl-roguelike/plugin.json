@@ -1,0 +1,5 @@
+{
+  "name": "bbl-roguelike",
+  "version": "1.0.0",
+  "description": "Build Beyond Limits live multiplayer roguelike protocol, tileset, and server health MCP server"
+}

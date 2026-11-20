@@ -1,11 +1,14 @@
 ---
 name: submit-client
-description: 참가자가 제작한 웹 클라이언트 번들과 프리뷰 썸네일을 호스트 클라이언트 아카이브(http://34.158.215.133:8081/)에 1인 1항목 Upsert 방식으로 제출할 때 활성화합니다. 제출 전 XSS와 샌드박스 우회 취약점을 자체 검토하고 수정하며, 게임 서버 인증 토큰을 검증해 브라우저 플레이어 이름(codename)과 제출자 이름을 일치시킵니다.
+description: >-
+  참가자가 제작한 웹 클라이언트 번들과 프리뷰 썸네일을 호스트 클라이언트 아카이브(http://34.158.215.133:8081/)에
+  1인 1항목 Upsert 방식으로 제출할 때 활성화합니다. 제출 전 XSS와 샌드박스 우회 취약점을 자체 검토하고 수정하며,
+  게임 서버 인증 토큰을 검증해 브라우저 플레이어 이름(codename)과 제출자 이름을 일치시킵니다.
 ---
 
 # 클라이언트 아카이브 제출 스킬
 
-작성한 웹 클라이언트를 호스트 전용 클라이언트 아카이브(`http://34.158.215.133:8081/api/gallery/submit`)에 업로드합니다. 아카이브 웹 화면 열람과 실행은 발표자 전용이며, 참가자는 업로드 API로 작품을 등록하고 갱신합니다.
+작성한 웹 클라이언트를 [submit-client.mjs](./scripts/submit-client.mjs) 스크립트로 호스트 전용 클라이언트 아카이브(`http://34.158.215.133:8081/api/gallery/submit`)에 업로드합니다. 아카이브 웹 화면 열람과 실행은 발표자 전용이며, 참가자는 업로드 API로 작품을 등록하고 갱신합니다.
 
 ## 동작 규칙
 
@@ -37,6 +40,8 @@ description: 참가자가 제작한 웹 클라이언트 번들과 프리뷰 썸�
 
 ## 실행 방법
 
+리포지토리 루트(`build-beyond-limits/`)에서 [submit-client.mjs](./scripts/submit-client.mjs)를 실행합니다.
+
 ```bash
 node .agents/skills/submit-client/scripts/submit-client.mjs \
   --title "심연의 픽셀 로그라이크" \
@@ -58,7 +63,7 @@ node .agents/skills/submit-client/scripts/submit-client.mjs \
 | 인자 | 구분 | 기본값 | 설명 |
 | :--- | :---: | :--- | :--- |
 | `--title` | 지정 필요 | - | 아카이브 카드에 표시할 작품 제목, 최대 80자 |
-| `--dir` | 선택 | `./my-client` 또는 `.` | 클라이언트 프로젝트 루트 디렉터리 (`dist/index.html` 또는 `index.html` 포함) |
+| `--dir` | 선택 | `./client`, `./my-client`, 또는 `.` | 클라이언트 프로젝트 루트 디렉터리 (`dist/index.html` 또는 `index.html` 포함) |
 | `--token` | 선택 | `.bbl-identity.json` | 게임 서버 `POST /api/register`에서 발급된 비밀 `token` |
 | `--desc` | 선택 | `""` | 작품 한 줄 설명, 최대 240자 |
 | `--thumbnail` | 선택 | 자동 캡처 | 커스텀 프리뷰 이미지 경로 (`.png`, `.jpg`, `.webp`, `.svg`) |

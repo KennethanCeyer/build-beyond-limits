@@ -35,4 +35,4 @@ description: "Step 1부터 Step 4까지 각 개발 단계를 마친 직후 다�
 1. 보스 장판 예고(`circle`, `cross`, `ring`), 충격파(`waves`), 봉인의 제단 4룬 단서 문구와 점등 진행도가 화면에 표시되는지 확인합니다.
 2. 제출 전 보안 금지 패턴(`eval`, 인라인 `on*=`, 외부 데이터 `innerHTML`, 외부 도메인 URL)이 없는지, 번들러 출력이 상대 경로(`./`)인지 점검합니다.
 3. 신규 토큰 기준(`me.classChosen === false`) 초기 화면에서 불투명 모달이 던전 전체를 가리지 않는지 확인하거나 `--thumbnail` 이미지를 준비합니다.
-4. `node .agents/skills/submit-client/scripts/submit-client.mjs`를 실행해 보안 검사와 `800x500` 썸네일 캡처를 통과하고, 출력된 제출자 `codename`이 브라우저 플레이어 이름과 일치하는지 확인합니다.
+4. 리포지토리 루트에서 `node .agents/skills/submit-client/scripts/submit-client.mjs --title "<작품 제목>" --dir ./client`를 실행해 보안 검사와 `800x500` 썸네일 캡처를 통과하고, 출력된 제출자 `codename`이 브라우저 플레이어 이름과 일치하는지 확인합니다.
