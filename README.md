@@ -21,14 +21,14 @@
 ```mermaid
 flowchart LR
   A["참가자 클라이언트\n(렌더링 · 입력 전송)"] <-->|"WebSocket (20Hz)"| B["Google Cloud 게임 서버\n(전투 판정 · 몬스터 · 순위표)"]
-  C["Antigravity CLI (agy)\n(코드 작성 · MCP 조회 · 갤러리 제출)"] -->|"클라이언트 구현"| A
+  C["Antigravity (agy · IDE)\n(코드 작성 · MCP 조회 · 갤러리 제출)"] -->|"클라이언트 구현"| A
   C -->|"계약 조회 · 토큰 검증"| B
   C -->|"Upsert 번들 · 썸네일 제출"| G["클라이언트 아카이브\nhttp://34.158.215.133:8081"]
   B -->|"실시간 관전"| D["중계 화면 및 순위표\nhttp://34.158.215.133:8080"]
 ```
 
 <details>
-<summary><strong>통신 순서 다이어그램 보기</strong></summary>
+<summary>통신 순서 다이어그램 보기</summary>
 
 ```mermaid
 sequenceDiagram
@@ -75,9 +75,10 @@ sequenceDiagram
   </picture>
 </p>
 
-Google Antigravity는 데스크톱 앱, IDE, 에디터 확장, 터미널 클라이언트인 Antigravity CLI(`agy`), Python SDK를 제공하는 개발 플랫폼입니다. 이 실습에서는 터미널에서 파일 탐색, 코드 작성, 빌드·테스트를 수행하는 `agy`를 사용합니다.
+Google Antigravity는 데스크톱 IDE, 에디터 확장, 터미널 클라이언트인 Antigravity CLI(`agy`), Python SDK를 제공하는 개발 플랫폼입니다. 이 실습에서는 터미널 클라이언트인 `agy` 또는 Antigravity IDE를 사용하며, 모델은 `Gemini 4 Neon`이나 `Gemini 4 Hydrogen` 사용을 권장합니다.
 
 - 공식 문서: [https://antigravity.google/docs](https://antigravity.google/docs)
+- IDE 다운로드: [https://antigravity.google/download](https://antigravity.google/download)
 - 지원 모델 및 요금제: [https://antigravity.google/docs/models](https://antigravity.google/docs/models)
 - CLI 레퍼런스: [https://antigravity.google/docs/cli/reference](https://antigravity.google/docs/cli/reference)
 - CLI 활용 가이드: [https://antigravity.google/docs/cli/best-practices](https://antigravity.google/docs/cli/best-practices)
@@ -95,9 +96,11 @@ Google Antigravity는 데스크톱 앱, IDE, 에디터 확장, 터미널 클라�
 
 - `Gemini 4 Carbon`: 복잡한 아키텍처 설계나 원인 분석에 쓰는 상위 추론 모델입니다. Google AI Ultra·Enterprise 요금제 또는 유료 Gemini API 키에서 사용할 수 있습니다.
 - `Gemini 4 Argon`: 소프트웨어 개발과 문서 분석 전반에 쓰는 범용 추론 모델입니다. 유료 Pro·Ultra·Enterprise 요금제에서 지원합니다.
-- `Gemini 4 Neon`: 추론 성능과 응답 속도의 균형을 맞춘 유료 요금제 기본 모델입니다.
-- `Gemini 4 Hydrogen`: 코드 편집이나 반복 실행처럼 빠른 응답이 필요한 작업에 쓰는 경량 모델입니다. 무료·Plus 요금제에서는 `Gemini 3.8 Flash`가 제공됩니다.
+- `Gemini 4 Neon`: 추론 성능과 응답 속도의 균형을 맞춘 유료 요금제 기본 모델입니다. 실습에서 프로토콜 디코더·전투·렌더링 구조를 구현할 때 권장합니다.
+- `Gemini 4 Hydrogen`: 코드 편집이나 반복 실행처럼 빠른 응답이 필요한 작업에 쓰는 경량 모델입니다. 실습에서 UI 배치나 효과음, 스타일을 빠르게 다듬을 때 권장합니다(무료·Plus 요금제에서는 `Gemini 3.8 Flash` 제공).
 - `Orchestrator`: 상위 모델(`Neon`, `Carbon`, `Argon`)이 설계·검토를 맡고 `Hydrogen`이 코드 수정과 빌드·테스트 실행을 나눠 맡는 모드입니다.
+
+핸즈온에서는 응답 속도와 사용량 한도를 고려해 `Gemini 4 Neon` 또는 `Gemini 4 Hydrogen`으로 진행하는 것을 권장합니다.
 
 ### 주요 사양 · 벤치마크 · API 요금
 
@@ -192,7 +195,7 @@ agy mcp list
 
 ```bash
 cd build-beyond-limits
-agy
+agy --model gemini-4-neon-high
 # 대화창 입력 예: "제목 '심연의 픽셀 로그라이크'로 내 클라이언트를 갤러리에 제출해 줘"
 ```
 
@@ -222,7 +225,7 @@ agy
   curl -fsSL https://antigravity.google/cli/install.cmd -o install.cmd && install.cmd && del install.cmd
   ```
 
-설치 후 새 터미널에서 `agy --help`로 실행 여부를 확인합니다.
+설치 후 새 터미널에서 `agy --help`로 실행 여부를 확인합니다. 터미널 대신 IDE 화면에서 진행하려면 아래 프로젝트 시작 섹션의 Antigravity IDE 설치 및 실행 안내를 참고하세요.
 
 ### 인증 설정
 
@@ -276,26 +279,58 @@ agy
 | 호스트 클라이언트 갤러리 | `http://34.158.215.133:8081` | 참가자 제출 클라이언트 쇼케이스 (`POST /api/gallery/submit`) |
 | 예제 타일셋 이미지 | `http://34.158.215.133:8080/assets/tileset/dungeon_autotile_16x16.png` | 512×640 CC0 픽셀 아트 시트 |
 
-### 리포지토리 클론 및 `agy` 실행
+### 리포지토리 클론 및 실행
+
+핸즈온에서는 설계·기능 구현에 `Gemini 4 Neon`, UI·효과음 등 반복 수정에 `Gemini 4 Hydrogen`을 사용하는 것을 권장합니다.
 
 ```bash
 git clone https://github.com/KennethanCeyer/build-beyond-limits.git
 cd build-beyond-limits
 curl http://34.158.215.133:8080/api/health
-agy
+agy --model gemini-4-neon-high
 ```
 
-로그인 후 모델 확인(`agy models`), MCP 등록(`agy mcp add`), 에이전트 실행(`agy`, `agy -p`) 흐름은 아래와 같습니다.
+버전 확인(`agy --version`), `Neon`·`Hydrogen` 모델 조회(`agy models`), MCP 연결 확인(`agy mcp list`), 단발 프롬프트 실행(`agy -p`) 흐름은 아래와 같습니다.
 
-![Antigravity CLI (agy) 버전 확인, 모델 조회, MCP 등록 및 단발 프롬프트 실행 콘솔 가이드](./assets/agy-cli-guide.svg)
+![Antigravity CLI (agy) 버전 확인, 모델 조회, MCP 확인 및 단발 프롬프트 실행 콘솔 가이드](./assets/agy-cli-guide.svg)
 
 | 자주 쓰는 명령 | 설명 |
 | :--- | :--- |
-| `agy` | 현재 폴더에서 대화형 세션 시작 (종료: `/exit`, 빈 입력창에서 `Ctrl+D`, 또는 대기 중 `Ctrl+C` 2회) |
-| `agy --model gemini-4-neon-high` | 모델을 지정해 대화형 세션 시작 (`--effort low\|medium\|high\|xhigh` 조합 가능) |
-| `agy -p "요청 문구"` | 단발 프롬프트 실행 후 결과 출력 |
-| `agy models` | 사용 가능한 모델 목록 조회 |
-| `agy mcp add <이름> <명령>` / `agy mcp list` | 전역 MCP 서버 등록 및 상태 확인 |
+| `agy --model gemini-4-neon-high` | 권장 모델(`Neon`)로 대화형 세션 시작 (종료: `/exit`, 빈 입력창에서 `Ctrl+D`, 대기 중 `Ctrl+C` 2회) |
+| `agy --model gemini-4-hydrogen-medium` | 빠른 반복 수정용 권장 모델(`Hydrogen`)로 대화형 세션 시작 (실행 중 변경은 대화창에서 `/model` 입력) |
+| `agy --model gemini-4-hydrogen-medium -p "요청 문구"` | 모델을 지정해 단발 프롬프트 실행 후 결과 출력 |
+| `agy models` | 현재 계정에서 사용 가능한 모델 목록 조회 |
+| `agy mcp list` / `agy mcp add <이름> <명령>` | 연결된 MCP 서버 확인 및 전역 등록 |
+
+<details>
+<summary>Antigravity IDE에서 설치 및 실행하기 (단계별 화면 안내)</summary>
+
+터미널 CLI 대신 그래픽 에디터 환경에서 진행할 때는 Antigravity IDE를 설치해 동일한 워크스페이스 설정과 권장 모델(`Gemini 4 Neon`, `Gemini 4 Hydrogen`)을 그대로 사용할 수 있습니다.
+
+1단계. 설치 및 로그인
+1. [Antigravity 다운로드 페이지](https://antigravity.google/download)에서 운영체제별 설치 파일(macOS 12 이상, Windows 10 64비트 이상, Linux)을 받아 실행합니다. 기존 VS Code 환경에서는 [Google Antigravity 확장](https://marketplace.visualstudio.com/items?itemName=Google.google-antigravity)을 설치해도 됩니다.
+2. 첫 실행 화면에서 Google 계정으로 로그인합니다.
+
+2단계. 폴더 열기, Agent 패널 실행 및 MCP 확인
+1. 상단 메뉴 `File > Open Folder`로 클론한 `build-beyond-limits` 폴더를 엽니다.
+2. 우측 상단 패널 아이콘을 누르거나 단축키(`macOS: Cmd + L`, `Windows/Linux: Ctrl + L`)를 눌러 우측 Agent 패널을 엽니다.
+3. Agent 패널 우측 상단 `⋮ > MCP Servers`를 열어 워크스페이스 설정([`.agents/mcp_config.json`](./.agents/mcp_config.json))에 정의된 `bbl-roguelike` 서버가 활성화되어 있는지 확인합니다.
+
+![Antigravity IDE 폴더 열기, Agent 패널 실행 및 MCP 서버 확인](./assets/guide-ide-step1-open.png)
+
+3단계. 권장 모델(`Neon` · `Hydrogen`) 선택
+1. Agent 입력창 좌측 하단의 모델 선택기를 클릭합니다.
+2. 프로토콜 디코더와 전투·렌더링 구현 단계에서는 `Gemini 4 Neon`(`Medium` 또는 `High`), UI·효과음·스타일 다듬기 단계에서는 `Gemini 4 Hydrogen`(`Medium`)을 선택합니다.
+
+![Antigravity IDE에서 Gemini 4 Neon 및 Hydrogen 모델 선택](./assets/guide-ide-step2-model.png)
+
+4단계. 프롬프트 전송 및 변경 코드 반영
+1. 입력창에서 `@specs/PROTOCOL.md`처럼 명세 파일을 언급해 구현 요청을 전송합니다.
+2. 에이전트가 작성한 코드는 중앙 에디터의 인라인 Diff(`Accept` / `Reject`)로 비교해 보고, 입력창 상단 `Accept all`을 눌러 파일에 반영합니다.
+
+![Antigravity IDE 프롬프트 실행 및 인라인 Diff 코드 반영](./assets/guide-ide-step3-agent.png)
+
+</details>
 
 클라이언트는 HTML5 Canvas, Vite, React, Phaser, PixiJS, 터미널 UI 등 원하는 스택으로 `client/` 등의 새 폴더에 작성합니다.
 
@@ -305,15 +340,15 @@ agy
 
 근접 전투 · 방패 막기 · 강공격 차지 · 대시 (수호기사)
 
-![수호기사 근접 전투 및 방패 막기·강공격 플레이 예시](./assets/preview-client-combat.gif)
+![수호기사 근접 전투 및 방패 막기·강공격 플레이 예시](./assets/preview-client-combat.webp)
 
 원거리 폭발 마법 · 던전 광원 · 대시 회피 (화염 술사)
 
-![화염 술사 마법 폭발 및 던전 광원 플레이 예시](./assets/preview-client-magic.gif)
+![화염 술사 마법 폭발 및 던전 광원 플레이 예시](./assets/preview-client-magic.webp)
 
 실시간 중계 화면 (`http://34.158.215.133:8080`)
 
-![실시간 중계 화면 플레이 예시](./assets/preview-broadcast.gif)
+![실시간 중계 화면 플레이 예시](./assets/preview-broadcast.webp)
 
 ---
 
@@ -611,7 +646,7 @@ node .agents/skills/submit-client/scripts/submit-client.mjs \
 
 ## 완료 확인 체크리스트
 
-- [ ] `agy --help` 출력 확인 및 Google 계정 OAuth 로그인(또는 `settings.json`의 `"modelProvider": "gemini"` + `GEMINI_API_KEY`) 인증 완료하기
+- [ ] Antigravity(`agy` 또는 IDE) 인증 완료 및 권장 모델(`Gemini 4 Neon` · `Gemini 4 Hydrogen`) 선택 확인하기
 - [ ] 워크스페이스 `.agents/mcp_config.json` 인식 확인 또는 `agy mcp add`로 `bbl-roguelike` 전역 등록하기
 - [ ] 맵 지형이나 몬스터 동작을 하드코딩하지 않고 `map_init`과 `20Hz state`만으로 동작하는 클라이언트 구현하기
 - [ ] 이동, 공격, 강공격 차지, 방패 막기·패링, 대시, 스킬, 아이템 줍기, 물약 사용, `ESC` 창 닫기 동작 확인하기
