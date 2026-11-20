@@ -26,7 +26,7 @@
   - 비밀 토큰이 담긴 `.bbl-identity.json` 파일은 절대 Git에 커밋하지 않습니다.
 - WebSocket 연결 및 `BBL-BIN v1` 디코딩
   - `new WebSocket('ws://34.158.215.133:8080/ws?token=' + encodeURIComponent(token))` 연결 직후 `ws.binaryType = 'arraybuffer'`를 설정합니다.
-  - 초기 `map_init`, `welcome` 메시지는 텍스트 JSON(`typeof ev.data === 'string'`)으로 수신되며, 이후 `0x81 S2C_STATE` 및 `0x8F S2C_PONG`은 바이너리 `ArrayBuffer`로 수신됩니다. 초기 구조 확인이 필요할 때만 `&encoding=json` 쿼리를 임시로 사용합니다.
+  - 초기 `map_init`, `welcome` 메시지는 텍스트 JSON(`typeof ev.data === 'string'`)으로 수신되며, 이후 `0x81 S2C_STATE` 및 `0x8F S2C_PONG`은 바이너리 `ArrayBuffer`로 수신됩니다. 초반 프로토타이핑 단계에서 화면과 이동부터 빠르게 확인할 때는 `&encoding=json` 쿼리로 먼저 연결한 뒤 다음 단계에서 `BBL-BIN v1` 바이너리 디코더로 전환해도 됩니다.
   - `0x81 S2C_STATE` 바이너리 디코더를 작성할 때는 파싱 종료 오프셋이 `byteLength`와 일치하는지 단위 테스트나 검증 스크립트로 확인합니다.
 - 픽셀 아트 타일셋 렌더링
   - 타일셋 이미지를 로드할 때 `img.src` 대입 전에 `img.crossOrigin = 'anonymous'`를 설정하고, `tileset.sheetUrl`이 `/assets/...` 상대 경로이면 `http://34.158.215.133:8080`과 결합합니다.
@@ -38,6 +38,7 @@
 완성한 클라이언트를 클라이언트 아카이브(`http://34.158.215.133:8081/api/gallery/submit`)에 제출할 때는 `submit-client` 스킬([`.agents/skills/submit-client/SKILL.md`](./.agents/skills/submit-client/SKILL.md))을 따르며, 아래 보안 제약을 코드 작성 단계부터 준수합니다.
 
 - 금지 패턴: `eval()`, `new Function()`, 문자열 `setTimeout` 및 `setInterval`, `document.write()`, `document.cookie`, 상위 프레임 접근(`window.parent`, `window.top`, `opener`, `frameElement`), `navigator.serviceWorker`, `SharedWorker`, `navigator.sendBeacon()`, 인라인 이벤트 속성(`onload=`, `onclick=`, `onerror=` 등), `javascript:` URI, `<iframe>`, `<object>`, `<embed>`, `<base>` 태그 사용 금지.
-- 네트워크 도메인 제한: 클라이언트 런타임의 `fetch` 및 `WebSocket` 호출은 게임 서버(`http://34.158.215.133:8080`, `ws://34.158.215.133:8080`)로만 수행합니다.
+- 네트워크 도메인 및 번들 경로 제한: 클라이언트 런타임의 `fetch` 및 `WebSocket` 호출은 게임 서버(`http://34.158.215.133:8080`, `ws://34.158.215.133:8080`)로만 수행하며, JS 코드 안에 임의의 외부 도메인 URL을 넣지 않습니다. 라이브러리와 폰트는 로컬 번들에 포함하고, Vite나 Webpack 등 번들러를 쓸 때는 아카이브 하위 경로(`/play/<codename>/`)에서 정적 파일이 깨지지 않도록 상대 경로(`base: './'`)로 빌드합니다.
+- 자동 프리뷰 썸네일 가시성: `submit-client.mjs`가 `800x500` 프리뷰 썸네일을 캡처할 때 신규 토큰은 아직 직업을 고르지 않은 상태(`me.classChosen === false`)로 열립니다. 화면 전체를 불투명 모달로 가리지 않고 뒤쪽 던전 화면이 보이도록 배치하거나, 기본 직업을 자동 선택한 뒤 비차단형 직업 전환 UI를 두거나, `--thumbnail` 인자로 직접 캡처한 플레이 이미지를 전달합니다.
 - 안전한 DOM 렌더링: 플레이어 코드네임, 아이템명, 이벤트 로그 등 외부 데이터를 DOM에 표시할 때는 `innerHTML` 대신 `textContent` 또는 이스케이프 유틸리티를 사용합니다.
-- 제출 시 `HTTP 422 SECURITY_POLICY_VIOLATION` 응답이 반환되면 출력된 `violations` 목록의 파일, 라인, 수정 안내를 확인해 코드를 수정한 뒤 다시 제출합니다.
+- 제출 시 `HTTP 422 SECURITY_POLICY_VIOLATION` 응답이 반환되면 출력된 `violations` 목록의 파일, 라인, 수정 안내를 확인해 코드를 수정한 뒤 다시 제출합니다. `package.json`의 `test` 스크립트가 대화형 브라우저 전용이면 `--skip-checks`를 사용합니다.

@@ -678,15 +678,19 @@ async function startClient(canvas, decodeS2CPacket) {
 
 | 단계 | 구현 목표 | 프롬프트 예시 |
 | :--- | :--- | :--- |
-| Step 1 | 서버 접속, `?token=` 연동, 직업 선택, 맵과 이동 및 공격 | `specs/와 bbl-roguelike MCP를 참고해 client/ 폴더에 라이브 서버 접속과 ?token= 쿼리 연동, 직업 선택, map_init 기반 72x52 맵 렌더링, 기본 이동과 공격이 동작하는 클라이언트를 만들어 줘.` |
+| Step 1 | 서버 접속, `?token=` 연동, 직업 선택, 맵과 이동 및 공격 | `specs/와 bbl-roguelike MCP를 참고해 client/ 폴더에 라이브 서버 접속(?token= 연동 포함, 초기 확인은 &encoding=json 허용), 직업 선택, map_init 기반 72x52 맵 렌더링, 기본 이동과 공격이 동작하는 클라이언트를 만들어 줘.` |
 | Step 2 | 화면 연출, 오디오, 바이너리 디코더, 패링, 강공격 | `클라이언트에 색감과 광원, 효과음, BBL-BIN v1 바이너리 디코더를 적용하고 방패 막기, 패링, 강공격 차지를 구현해 줘.` |
 | Step 3 | 미니맵, 가방과 비교 툴팁, Q/R 스킬 트리 | `우측 상단 미니맵, 10칸 가방과 장비 비교 툴팁, Q/R 스킬 트리와 능력치 배분 창을 구현해 줘.` |
 | Step 4 | 보스 패턴, 룬 퍼즐 안내, 아카이브 제출 | `보스 장판과 충격파, 4룬 퍼즐 단서를 화면에 표시하고 submit-client 스킬로 제목을 붙여 아카이브에 제출해 줘.` |
+
+> 실습 시간이 빠듯할 때는 Step 1에서 `/ws?token=...&encoding=json`으로 먼저 화면 렌더링과 조작을 확인한 뒤 Step 2에서 `BBL-BIN v1` 바이너리 디코더를 붙이면 초기 확인이 빠릅니다.
 
 ### 클라이언트 아카이브 제출 안내
 
 - 1인 1항목 갱신: 같은 플레이어가 다시 제출하면 새 카드가 생기는 대신 기존 번들과 제목, 썸네일이 갱신되고 `REV` 번호만 올라갑니다.
 - 플레이어 이름 연동: 제출 스크립트는 게임 서버 `/api/auth/verify`로 `token`을 확인해 `codename`을 가져옵니다. 브라우저 `localStorage`의 `bbl_player_identity_v1`에 들어 있는 `token`을 `--token`으로 넘기거나, 스크립트가 만든 `.bbl-identity.json`의 토큰을 `?token=<TOKEN>`으로 브라우저에 전달하면 같은 이름으로 표시됩니다.
+- 번들 경로와 외부 리소스: 아카이브는 하위 경로(`/play/<codename>/`)와 격리 샌드박스에서 클라이언트를 실행하므로 번들러는 상대 경로(`base: './'`)로 빌드하고, 라이브러리와 폰트는 외부 URL 대신 로컬 번들에 포함합니다.
+- 프리뷰 썸네일 화면: 자동 캡처는 직업을 고르기 전 상태(`classChosen === false`)에서 실행되므로 불투명 모달로 화면 전체를 가리지 않고 뒤쪽 던전이 보이게 두거나 `--thumbnail <파일경로>`로 플레이 화면을 직접 지정합니다.
 
 ```bash
 node .agents/skills/submit-client/scripts/submit-client.mjs \
@@ -718,6 +722,8 @@ node .agents/skills/submit-client/scripts/submit-client.mjs \
 | WebSocket 연결 반복 끊김 | 사내 방화벽이나 프록시의 8080 포트 차단 | `curl http://34.158.215.133:8080/api/health` 확인 후 차단 시 핫스팟 전환 |
 | MCP 서버 또는 제출 스크립트 실행 실패 | Node.js 20 미만 버전 | `node -v` 확인 후 Node.js 20 LTS 이상 설치 |
 | 타일셋 이미지가 그려지지 않음 | CORS 속성 누락 또는 로드 전 `drawImage` 호출 | `img.crossOrigin = 'anonymous'` 지정 및 `img.complete && img.naturalWidth > 0` 확인 |
+| 아카이브 실행 시 정적 파일 `404` 또는 보안 거절 | 루트 절대 경로(`/assets/...`) 빌드 또는 외부 도메인 참조 | 번들러 `base: './'` 설정 및 외부 URL 제거 후 로컬 번들로 재제출 |
+| 제출 중 `npm test` 단계에서 중단됨 | 브라우저 전용 테스트 또는 실패 스크립트 존재 | `package.json`의 `test` 스크립트를 정리하거나 `--skip-checks` 인자 추가 |
 | 새 코드네임 재발급 필요 | 이전 토큰이 로컬에 저장됨 | 브라우저 `localStorage` 토큰과 리포지토리 루트 `.bbl-identity.json` 삭제 |
 
 ---
