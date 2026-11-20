@@ -342,7 +342,7 @@ agy --model gemini-4-neon-high
 
 ![화염 술사 마법 폭발 및 던전 광원 예시](./assets/preview-client-magic.webp)
 
-실시간 중계 화면 `http://34.158.215.133:8080`
+발표자 실시간 중계 화면
 
 ![실시간 중계 화면 예시](./assets/preview-broadcast.webp)
 

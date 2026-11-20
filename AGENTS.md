@@ -5,10 +5,10 @@
 ## 1. 작업 디렉터리 및 아키텍처 원칙
 
 - 신규 클라이언트는 사용자가 별도 경로를 지정하지 않으면 `./client/` 또는 `./my-client/` 디렉터리 아래에 작성합니다. 기존 `specs/`, `.agents/`, `mcp-server/`, `assets/` 파일을 임의로 삭제하거나 덮어쓰지 않습니다.
-- 서버 권위 데이터 준수: 던전 타일 배열(`72x52`), 구역(`zones`) 좌표, 룬 발판과 봉인문 좌표, 몬스터 AI 동작, 직업(`classCatalog`) 및 스킬(`skillCatalog`) 정의를 클라이언트에 하드코딩하지 않습니다. 모든 월드, 규칙, 상태 정보는 반드시 WebSocket `map_init`과 `20Hz state` 패킷에서 수신한 값만 사용합니다.
+- 서버 권위 데이터 준수: 던전 타일 배열(`72x52`), 구역(`zones`) 좌표, 룬 발판과 봉인문 좌표, 몬스터 AI 동작, 직업(`classCatalog`) 및 스킬(`skillCatalog`) 정의를 클라이언트에 하드코딩하지 않습니다. 모든 월드, 규칙, 상태 정보는 WebSocket `map_init`과 `20Hz state` 패킷에서 수신한 값만 사용합니다.
 - 프레임워크는 순수 HTML5 Canvas와 ES Module 또는 Vite, React, PixiJS 등 참가자가 원하는 웹 기술 스택을 자유롭게 사용할 수 있습니다.
 
-## 2. 코드 작성 전 필수 조회 순서
+## 2. 코드 작성 전 조회 순서
 
 추측으로 패킷 필드나 스프라이트 좌표를 작성하지 말고, 구현 전에 아래 명세서와 로컬 MCP 서버(`bbl-roguelike`) 도구를 먼저 확인합니다.
 
@@ -18,7 +18,7 @@
 4. 전투, 패링, 스킬, 보스 패턴, 퍼즐 규칙: [`specs/COMBAT_AND_VFX.md`](./specs/COMBAT_AND_VFX.md) 및 `get_protocol_contract`(`combat_guard_parry`, `skills_and_tree`, `bosses_and_waves`, `maze_puzzle`)를 참조합니다.
 5. 송신 페이로드 및 실시간 상태 검증: 액션 전송 코드는 `validate_client_payload`로 사전 검증하고, 접속 후 캐릭터 동기화 확인은 `inspect_player_state`를 사용합니다.
 
-## 3. 필수 구현 체크포인트
+## 3. 구현 확인 사항
 
 - 플레이어 인증 및 `?token=` 동기화
   - 최초 실행 시 URL 쿼리에 `?token=<TOKEN>`이 있으면 `POST /api/auth/verify`로 검증한 뒤 `localStorage['bbl_player_identity_v1']`에 저장해 최우선 사용합니다.
