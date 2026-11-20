@@ -293,11 +293,18 @@ agy --sandbox --mode=auto --model gemini-4-neon-high
 3. 계정을 바꿀 때는 `agy` 대화창에서 `/logout`을 입력합니다.
 
 #### 방법 B. Gemini API 키 인증
-원격 서버나 CI처럼 브라우저 로그인이 어려운 환경에서 사용합니다. 자세한 내용은 [API 키 인증 문서](https://antigravity.google/docs/install/#using-a-gemini-api-key)에 나와 있습니다. `GEMINI_API_KEY` 환경 변수만 설정하면 동작하지 않으므로 `~/.gemini/antigravity-cli/settings.json`에 `"modelProvider": "gemini"`를 함께 넣어야 합니다.
+GDG 부산 핸즈온 가이드에 따라 할당받은 `$5.00` Google Cloud 크레딧으로 유료 모델(`Gemini 4 Neon`, `Gemini 4 Hydrogen`)을 호출하거나, 브라우저 로그인이 어려운 환경에서 사용합니다. 자세한 내용은 [API 키 인증 문서](https://antigravity.google/docs/install/#using-a-gemini-api-key)에 나와 있습니다. `GEMINI_API_KEY` 환경 변수만 설정하면 동작하지 않으므로 `~/.gemini/antigravity-cli/settings.json`에 `"modelProvider": "gemini"`를 함께 넣어야 합니다.
 
-1단계. API 키 발급 ([Google AI Studio](https://aistudio.google.com/apikey), [API 키 안내](https://ai.google.dev/gemini-api/docs/api-key))
+1단계. Google Cloud `$5.00` 크레딧 및 프로젝트 결제 연결 확인 ([Google Cloud 콘솔 결제](https://console.cloud.google.com/billing))
+1. 좌측 `결제 > 크레딧` 메뉴를 열고 상단 결제 계정에서 `Google Cloud 트라이얼 결제 계정`이 선택되어 있는지 확인합니다.
+2. 보유 크레딧 내역에 `사용 가능` 상태와 `$5.00` 잔액이 표시되는지 확인합니다.
+3. 좌측 `계정 관리` 메뉴에서 API 키를 발급할 프로젝트에 이 트라이얼 결제 계정이 연결(`결제 사용 설정됨`)되어 있는지 확인합니다. 미연결 상태라면 우측 `⋮ > 결제 변경`에서 트라이얼 결제 계정을 연결합니다.
+
+![Google Cloud $5 크레딧 및 프로젝트 결제 연결 확인](./assets/guide-gcp-credits.png)
+
+2단계. API 키 발급 ([Google AI Studio](https://aistudio.google.com/apikey), [API 키 안내](https://ai.google.dev/gemini-api/docs/api-key))
 1. 좌측 `대시보드 > API 키` 메뉴에서 우측 상단 `+ API 키 만들기` 클릭
-2. `새 키 만들기` 창에서 키 이름과 연결할 Google Cloud 프로젝트를 고른 뒤 `키 만들기` 클릭
+2. `새 키 만들기` 창에서 키 이름과 위 1단계에서 `$5.00` 크레딧 결제 계정을 연결한 Google Cloud 프로젝트를 고른 뒤 `키 만들기` 클릭
 3. 목록에서 `키 복사`를 눌러 `AIza...` 문자열 복사
 
 ![Google AI Studio API 키 발급 순서](./assets/guide-aistudio-apikey.png)
@@ -313,7 +320,7 @@ agy --sandbox --mode=auto --model gemini-4-neon-high
 
 </details>
 
-2단계. `settings.json` 및 환경 변수 설정
+3단계. `settings.json` 및 환경 변수 설정
 - `~/.gemini/antigravity-cli/settings.json`에 `"modelProvider": "gemini"`를 추가합니다.
   ```json
   {
