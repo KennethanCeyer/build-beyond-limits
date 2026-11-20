@@ -29,9 +29,6 @@ sequenceDiagram
     loop 초당 20회 서버 틱 (50ms, 바이너리 0x81 S2C_STATE)
         WS-->>C: 0x81 S2C_STATE (me, players, monsters, projectiles, groundItems, telegraphs, waves, traps, puzzle, bossStatus, events)
     end
-    loop 초당 1회 또는 변동 시
-        WS-->>C: { type: "leaderboard", leaderboard, killFeed }
-    end
 
     Note over C: 사용자 입력 시 1씩 증가하는 seq 포함 전송 (바이너리 C2S 또는 JSON)
     C->>WS: 0x0A C2S_SELECT_CLASS (classId: "knight")
@@ -45,14 +42,14 @@ sequenceDiagram
 1. 계정 등록 및 토큰 동기화 (`POST /api/register`, `?token=`): URL 쿼리에 `?token=<TOKEN>`이 있으면 그 토큰을 먼저 쓰고, 없으면 `localStorage`(`bbl_player_identity_v1`)를 확인한 뒤 최초 1회 `POST /api/register`를 호출해 코드네임, 인증 `token`, 6자리 `verifyCode`를 저장합니다.
 2. WebSocket 연결: `ws://<HOST>:8080/ws?token=<token>`에 `ws.binaryType = 'arraybuffer'`로 연결합니다. 기본 전송은 `BBL-BIN v1` 바이너리 + `perMessageDeflate` 압축이며, 디버깅 시에만 `&encoding=json`을 붙입니다.
 3. `map_init` 처리:
-   - 맵 타일, 구역 좌표, 몬스터 동작, 직업·스킬 목록을 로컬에 하드코딩하지 않고 `map_init`의 `map.width`(72), `map.height`(52), `map.tiles[y][x]`, `map.zones[]`, `map.bossArena`, `map.runePads[]`, `map.gateTiles[]`, `map.dartShooters[]` 및 `rules`를 저장합니다.
+   - 맵 타일, 구역 좌표, 몬스터 동작, 직업과 스킬 목록을 로컬에 하드코딩하지 않고 `map_init`의 `map.width`(72), `map.height`(52), `map.tiles[y][x]`, `map.zones[]`, `map.bossArena`, `map.runePads[]`, `map.gateTiles[]`, `map.dartShooters[]` 및 `rules`를 저장합니다.
    - `httpBase + map_init.tileset.sheetUrl`(`/assets/tileset/dungeon_autotile_16x16.png?v=2.5`)로 이미지를 불러옵니다(`img.crossOrigin = 'anonymous'`).
    - `tileset.sprites[key]`의 `{ x, y, w, h }`로 타일, 캐릭터, 몬스터, 무기, 갑옷, 방패, 하트, 물약을 그립니다.
 4. `welcome` 처리: 공개 식별자인 `playerId`(`p_xxxxxxxxxxxx`), `codename`, `verifyCode`, `skin`을 화면에 연결하고 `token`은 재접속용으로만 로컬에 보관합니다.
 5. 직업 선택 (`select_class`): `state.me.alive && !state.me.classChosen`일 때 4종 직업(`knight`, `ranger`, `mage`, `berserker`) 선택 창을 띄우고 `0x0A C2S_SELECT_CLASS` 또는 `{ type: "action", seq, action: "select_class", classId }`를 전송합니다.
 6. `state` 처리 (20Hz):
-   - 수신한 `ArrayBuffer`의 `0x81 S2C_STATE` 프레임을 디코딩해 `state.me`의 좌표, 반칸 단위 체력(`hp`/`maxHp`), 직업·주 무기 숙련, 부활 횟수(`revivesLeft`), 스킬 트리(`skillTree.q` / `skillTree.r`), 가방, 장비, `ackSeq`를 갱신합니다.
-   - `state.events[]`는 해당 틱에 1회만 오므로 시각·오디오 효과 큐에 넣어 재생합니다.
+   - 수신한 `ArrayBuffer`의 `0x81 S2C_STATE` 프레임을 디코딩해 `state.me`의 좌표, 반칸 단위 체력(`hp`/`maxHp`), 직업과 주 무기 숙련, 부활 횟수(`revivesLeft`), 스킬 트리(`skillTree.q` / `skillTree.r`), 가방, 장비, `ackSeq`를 갱신합니다.
+   - `state.events[]`는 해당 틱에 1회만 오므로 화면 및 오디오 효과 큐에 넣어 재생합니다.
 7. 입력 전송 (`input` / `action`):
    - 이동 벡터는 방향이 바뀔 때만 `0x01 C2S_INPUT`(7바이트) 또는 `type: "input"`으로 보냅니다(초당 60개 메시지 제한).
    - 모든 메시지에 1씩 증가하는 `seq`를 담아 보내고, 서버가 처리한 번호를 `state.me.ackSeq`로 확인합니다.
@@ -119,8 +116,8 @@ Base URL 접두 경로: `http://34.158.215.133:8080/api/*` *(단독 `GET /api` �
 ### `GET /api/map`
 `map_init.map`과 동일한 구조(`width`, `height`, `tiles`, `zones`, `bossArena`, `runePads`, `gateTiles`, `dartShooters`)를 반환합니다. `Accept-Encoding: gzip` 요청 시 사전 압축된 `gzip` 응답을 전달합니다.
 
-### `GET /api/tileset` / `GET /api/leaderboard`
-통합 512×640 타일셋 매니페스트(`/api/tileset` 역시 사전 압축 `gzip` 지원)와 실시간 리더보드를 조회합니다.
+### `GET /api/tileset`
+통합 512×640 타일셋 매니페스트(`sheetUrl`, `tileSize`, `sprites`, `tileMapping`)를 조회합니다(`Accept-Encoding: gzip` 요청 시 사전 압축 응답).
 
 ### 호스트 갤러리 제출 (`POST http://34.158.215.133:8081/api/gallery/submit`)
 완성한 클라이언트 웹 번들과 썸네일을 1인 1항목 갱신(Upsert) 방식으로 제출합니다(`.agents/skills/submit-client/scripts/submit-client.mjs` 사용).
@@ -151,10 +148,10 @@ Base URL 접두 경로: `http://34.158.215.133:8080/api/*` *(단독 `GET /api` �
 ## 바이너리 패킷 및 압축 전송 (`BBL-BIN v1` + `perMessageDeflate`)
 
 - `/ws` 엔드포인트 기본값은 리틀 엔디안 바이너리 프레임(`BBL-BIN v1`) + RFC 7692 `perMessageDeflate` 슬라이딩 윈도우 압축입니다.
-- 클라이언트에서 `ws.binaryType = 'arraybuffer'`를 지정하면 초기 제어 메시지(`map_init`, `welcome`, 1Hz `leaderboard`)는 텍스트 JSON으로, 20Hz 상태(`0x81`)와 `pong`(`0x8F`)은 바이너리 `ArrayBuffer`로 수신됩니다(브라우저가 `perMessageDeflate` 압축 해제를 자동 수행).
+- 클라이언트에서 `ws.binaryType = 'arraybuffer'`를 지정하면 초기 제어 메시지(`map_init`, `welcome`)는 텍스트 JSON으로, 20Hz 상태(`0x81`)와 `pong`(`0x8F`)은 바이너리 `ArrayBuffer`로 수신됩니다.
 - 디버깅 시 평문 JSON이 필요하면 `?encoding=json` 쿼리를 붙입니다. C2S 송신은 어느 모드에서나 바이너리와 JSON(`type: "input" | "action" | "ping"`)을 모두 수락합니다.
 
-### 패킷 크기 비교 (플레이어 10명 · 몬스터 25마리 기준)
+### 패킷 크기 비교 (플레이어 10명, 몬스터 25마리 기준)
 
 | 메시지 | 평문 JSON | 바이너리 (`BBL-BIN v1`) | 바이너리 + Deflate 압축 | 절감률 |
 | :--- | :---: | :---: | :---: | :---: |
@@ -284,10 +281,10 @@ Base URL 접두 경로: `http://34.158.215.133:8080/api/*` *(단독 `GET /api` �
 - 바이너리 생략 항목: `telegraphs[]`의 타임스탬프(`createdAt`/`activatesAt`/`expiresAt`, `progress` 사용)와 `bossStatus`의 부가 메타(`killedAt`, `nextBossAt`, `heroicDrop`, `killedBy` 내부 DPS 항목)는 바이너리 프레임에서 생략됩니다.
 - `Private me` (`F.bit3=1`, 문자열은 모두 `str8`):
   - 기본 정보: `id`, `codename`, `verifyCode`, `u8 classIdx`, `className`, `u8 prefWpnClassIdx`, `prefWpnLabel`, `masteryDesc`, `u8 skinIdx`, `u32 ackSeq`
-  - 좌표·전투 수치: `u16 x100`, `u16 y100`, `i8 dirX100`, `i8 dirY100`, `u8 hp`, `u8 maxHp`, `u16 atk`, `u16 def`, `u8 blockRed100`, `u16 moveSpeed100`, `u8 crit100`
-  - 성장·상태: `u8 level`, `u32 xp`, `u32 xpToNext`, `u8 statPoints`, `u8 skillPoints`, `u8 str`, `u8 vit`, `u8 agi`, `u8 revivesLeft`, `u16 meFlags(bit0=classChosen, bit1=weaponMasteryActive, bit2=alive, bit3=hit, bit4=guarding, bit5=parrying, bit6=dashing, bit7=invulnerable, bit8=inSafeZone, bit9=hasLastRunSummary)`
-  - 타이머·재사용 대기시간: `u8 charging100`, `u16 invulnMs`, `u16 respawnInMs`, `u16 dashCdMs`, `u16 dashMaxCdMs`, `u16 atkCdMs` + (`bit9=1`일 때 `u8 reachedLevel`, `u16 mobKills`, `u16 bossKills`, `f64 endedAt`; `classId`·`className`은 `player_death.runSummary` 이벤트와 JSON 모드에만 포함)
-  - 스킬·장비·가방·전적: `2 × SkillSlot(u8 skillIdx, str8 name, u8 lv, u8 maxLv, u16 cdMs, u16 maxCdMs)`, `u8 eqMask(bit0=weapon, bit1=shield, bit2=armor) + ItemRecords`, `u8 invLen + ItemRecords`, `u8 buffLen + buffLen × (u8 typeIdx, u16 remMs)`, `u16 mobKills`, `u16 bossKills`, `u16 pvpKills`, `u32 bossDamage`, `u16 bossDps`, `str8 zone`
+  - 좌표 및 전투 수치: `u16 x100`, `u16 y100`, `i8 dirX100`, `i8 dirY100`, `u8 hp`, `u8 maxHp`, `u16 atk`, `u16 def`, `u8 blockRed100`, `u16 moveSpeed100`, `u8 crit100`
+  - 성장 및 상태: `u8 level`, `u32 xp`, `u32 xpToNext`, `u8 statPoints`, `u8 skillPoints`, `u8 str`, `u8 vit`, `u8 agi`, `u8 revivesLeft`, `u16 meFlags(bit0=classChosen, bit1=weaponMasteryActive, bit2=alive, bit3=hit, bit4=guarding, bit5=parrying, bit6=dashing, bit7=invulnerable, bit8=inSafeZone, bit9=hasLastRunSummary)`
+  - 타이머 및 재사용 대기시간: `u8 charging100`, `u16 invulnMs`, `u16 respawnInMs`, `u16 dashCdMs`, `u16 dashMaxCdMs`, `u16 atkCdMs` + (`bit9=1`일 때 `u8 reachedLevel`, `u16 mobKills`, `u16 bossKills`, `f64 endedAt`; `classId`와 `className`은 `player_death.runSummary` 이벤트와 JSON 모드에만 포함)
+  - 스킬, 장비, 가방, 전적: `2 × SkillSlot(u8 skillIdx, str8 name, u8 lv, u8 maxLv, u16 cdMs, u16 maxCdMs)`, `u8 eqMask(bit0=weapon, bit1=shield, bit2=armor) + ItemRecords`, `u8 invLen + ItemRecords`, `u8 buffLen + buffLen × (u8 typeIdx, u16 remMs)`, `u16 mobKills`, `u16 bossKills`, `u16 pvpKills`, `u32 bossDamage`, `u16 bossDps`, `str8 zone`
 
 ### Server -> Client: `map_init` (접속 직후 1회)
 ```json
@@ -614,35 +611,6 @@ Base URL 접두 경로: `http://34.158.215.133:8080/api/*` *(단독 `GET /api` �
 }
 ```
 
-### Server -> Client: `leaderboard` (초당 1회 또는 변동 시)
-```json
-{
-  "type": "leaderboard",
-  "leaderboard": {
-    "pvpEnabled": false,
-    "onlineCount": 12,
-    "totalRegistered": 20,
-    "awards": {
-      "highestLevel": { "codename": "Crimson-Blade-42", "verifyCode": "A7F9K2", "level": 9, "xp": 120, "mobKills": 48 },
-      "mostBossKills": { "codename": "Crimson-Blade-42", "verifyCode": "A7F9K2", "bossKills": 2, "bossDps": 185 },
-      "mostPvp": null,
-      "fastestJoin": { "codename": "Crimson-Blade-42", "verifyCode": "A7F9K2", "joinedAt": "2026-11-19T03:00:00.000Z", "joinedAtMs": 1795057200000 },
-      "bossFirstKiller": null,
-      "highestBossDps": null
-    },
-    "topLevel": [],
-    "topBossKills": [],
-    "topPvp": [],
-    "topBossDps": [],
-    "fastestJoin": [],
-    "bossFirstKiller": null
-  },
-  "killFeed": [
-    { "id": "b1ecd0", "text": "Crimson-Blade-42 entered the dungeon (#1)", "category": "join", "at": "2026-11-19T03:00:00.000Z" }
-  ]
-}
-```
-
 ---
 
 ### Client -> Server 메시지 전체 목록
@@ -651,7 +619,7 @@ Base URL 접두 경로: `http://34.158.215.133:8080/api/*` *(단독 `GET /api` �
 | :--- | :---: | :--- | :--- |
 | 이동 방향 변경 | `0x01` (7B) | `{ "type": "input", "seq": N, "move": [dx, dy] }` | `dx, dy ∈ [-1, 1]`. 방향이 바뀔 때만 전송합니다. |
 | 직업 선택 | `0x0A` (6B) | `{ "type": "action", "seq": N, "action": "select_class", "classId": "knight" \| "ranger" \| "mage" \| "berserker" }` | 최초 접속 또는 탐험 초기화 후 `me.classChosen === false`일 때 전송합니다. 탐험당 1회만 허용됩니다. |
-| 탐험 다시하기 | `0x0D` (5B) | `{ "type": "action", "seq": N, "action": "restart_run" }` | 현재 탐험의 레벨·장비·스킬을 초기화하고 성소에서 직업 선택(`classChosen = false`) 상태로 새 탐험을 시작합니다(리더보드 최고 기록 유지). 실수 방지를 위해 확인 창을 띄운 뒤 전송하는 것을 권장합니다. |
+| 탐험 다시하기 | `0x0D` (5B) | `{ "type": "action", "seq": N, "action": "restart_run" }` | 현재 탐험의 레벨·장비·스킬을 초기화하고 성소에서 직업 선택(`classChosen = false`) 상태로 새 탐험을 시작합니다. 실수 방지를 위해 확인 창을 띄운 뒤 전송하는 것을 권장합니다. |
 | 강공격 차지 시작 | `0x03` (5B) | `{ "type": "action", "seq": N, "action": "charge_start" }` | 공격 키를 길게 누르기 시작할 때 전송합니다. 공격 대기시간·대시 중에는 거부되며, 서버가 경과 시간을 계측합니다. |
 | 공격 발동 | `0x02` (9B) | `{ "type": "action", "seq": N, "action": "attack", "aim": [dx, dy] }` | 근접 참격 / 화살 / 폭발 마법구 발사. `charge_start` 후 기본 약 `358ms`(심연 사냥꾼 `311ms`, 광전사 `325ms`, 화염 술사 `265ms`) 이상 지나면 강공격이 발동합니다(클라이언트가 임의로 보낸 `charge` 값은 무시). |
 | 방패 막기 · 패링 | `0x04` (6B) | `{ "type": "action", "seq": N, "action": "guard", "active": true \| false }` | 누를 때 `active: true`, 뗄 때 `active: false`. 전방 `120도` 내 근접·원거리 공격(속도 벡터 판정, 동일 미사일 반사) 또는 광역 장판 적중 직전 `0.32초`(수호기사 `0.42초`) 이내에 막기를 올리면 패링이 발동합니다(재장전 `750ms`). |

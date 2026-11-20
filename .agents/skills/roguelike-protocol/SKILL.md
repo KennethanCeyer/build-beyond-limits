@@ -15,20 +15,20 @@ description: >-
 1. 통신 규격 조회 (`get_protocol_contract`)
    - `topic`: `overview` | `handshake` | `binary_protocol` | `state_schema` | `events_and_telegraphs` | `combat_guard_parry` | `skills_and_tree` | `weapons_and_loot` | `bosses_and_waves` | `maze_puzzle` | `traps_and_hearts` | `tileset_sprites`
    - `binary_protocol`: 기본 전송 포맷인 `BBL-BIN v1` 바이너리 패킷 구조 및 열거형 인덱스
-   - `state_schema`: `me`, `players[]`, `monsters[]`, `projectiles[]`, `groundItems[]`, `leaderboard` 필드 구조
+   - `state_schema`: `me`, `players[]`, `monsters[]`, `projectiles[]`, `groundItems[]`, `puzzle`, `bossStatus` 필드 구조
    - `events_and_telegraphs`: `state.events[]` 스키마와 보스 패턴(`circle`, `cross`, `ring`, `waves[]`)
 2. 에셋 좌표 조회 (`get_asset_manifest`)
    - `category`: `heroes` | `weapons` | `armors` | `shields` | `monsters` | `walls` | `hearts` | `traps` | `puzzle` | `potions` (`item_phoenix_feather`, `item_skill_book` 포함)
-   - `512×640` 통합 시트의 `(x, y, w, h)` 좌표와 그리기 기준점을 반환합니다.
+   - `512×640` 통합 시트의 `x, y, w, h` 좌표와 그리기 기준점을 반환합니다.
 3. 실시간 상태 조회 (`inspect_live_world`, `inspect_player_state`, `diagnose_server_health`)
-   - WebSocket으로 접속한 캐릭터의 공개 ID(`p_...`), 코드네임, 또는 토큰으로 서버 측 좌표, 반칸 단위 체력, 막기·패링·차지 상태, 스킬 트리, `ackSeq`를 조회합니다.
+   - WebSocket으로 접속한 캐릭터의 공개 ID(`p_...`), 코드네임, 또는 토큰으로 서버 측 좌표, 반칸 단위 체력, 막기와 패링 및 차지 상태, 스킬 트리, `ackSeq`를 조회합니다.
 4. 페이로드 사전 검증 (`validate_client_payload`)
    - 송신할 WebSocket JSON 메시지를 사전 검증합니다. 유효한 메시지 `type`은 `"input"`, `"action"`, `"ping"` 3종이며, 구형 형식(`type: "parry"`, `type: "move"`, `action: "parry"`, `skill: "whirlwind"`)은 거부됩니다.
-5. 서버 데이터 기준 렌더링 및 갤러리 제출 연동
-   - 맵 타일, 구역 좌표, 몬스터 동작, 직업·스킬 목록을 로컬에 하드코딩하지 않고 `map_init`과 `20Hz state` 패킷 데이터를 사용합니다.
-   - URL 쿼리 `?token=<TOKEN>`이 주어지면 `localStorage`의 `bbl_player_identity_v1` 토큰으로 저장해 브라우저 플레이어 이름과 `submit-client` 갤러리 제출자 이름을 맞춥니다.
+5. 서버 데이터 기준 렌더링 및 아카이브 제출 연동
+   - 맵 타일, 구역 좌표, 몬스터 동작, 직업과 스킬 목록을 로컬에 하드코딩하지 않고 `map_init`과 `20Hz state` 패킷 데이터를 사용합니다.
+   - URL 쿼리 `?token=<TOKEN>`이 주어지면 `localStorage`의 `bbl_player_identity_v1` 토큰으로 저장해 브라우저 플레이어 이름과 `submit-client` 아카이브 제출자 이름을 맞춥니다.
 
-## 명세 문서 (`specs/`)
+## 명세 문서
 - [specs/PROTOCOL.md](../../../specs/PROTOCOL.md)
 - [specs/COMBAT_AND_VFX.md](../../../specs/COMBAT_AND_VFX.md)
 - [specs/TILESET_AND_RENDERING.md](../../../specs/TILESET_AND_RENDERING.md)
