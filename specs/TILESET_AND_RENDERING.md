@@ -1,6 +1,6 @@
 # Build Beyond Limits 예제 에셋 및 렌더링 명세
 
-`map_init`의 `72×52` 던전 지도와 리포지토리에 포함된 CC0 예제 시트(`assets/tileset/dungeon_autotile_16x16.png`) 기준 렌더링 규격입니다. 예제 에셋 대신 직접 준비한 타일셋, 벡터 도형, 와이어프레임, ASCII 아트 등을 사용해도 무방합니다. 단, 맵 배열·구역 좌표·몬스터 위치와 동작은 로컬에 하드코딩하지 않고 반드시 서버가 보내는 `map_init`과 `20Hz state` 데이터만 사용해야 합니다.
+`map_init`의 `72×52` 던전 지도와 리포지토리에 포함된 CC0 예제 시트(`assets/tileset/dungeon_autotile_16x16.png`) 기준 렌더링 규격입니다. 예제 에셋 대신 직접 준비한 타일셋, 벡터 도형, 와이어프레임, ASCII 아트 등을 써도 됩니다. 다만 맵 배열·구역 좌표·몬스터 위치와 동작은 로컬에 하드코딩하지 않고 서버가 보내는 `map_init`과 `20Hz state` 데이터를 사용합니다.
 
 ---
 
@@ -64,32 +64,32 @@
 | `14` | `SEALED_GATE` | X (`gateOpen` 시 `6`으로 변경) | X | 봉인의 문 (`map.gateTiles`, `x=52, y=8..11` 세로 4칸). `!state.puzzle.gateOpen` 동안 각 `16×16` 타일에 황금 봉인 창살을 그리며, 퍼즐 완료 시 `gateOpen = true`로 열립니다. |
 | `15` | `RUNE_PAD` | O | X | 4룬 퍼즐 발판 (`map.runePads`, `state.puzzle.pads`): `floor_1` 위에 `button_blue_up/down`과 `pad.id`(`blue`, `red`, `green`, `gold`)별 `pad.color`(`#58b4ff`, `#ff5c5c`, `#68d67a`, `#f0c869`) 문양을 그리고, `state.puzzle.litRunes`에 포함되면 밝은 광원을 켭니다. |
 
-- **벽면 독침 발사기 (`map.dartShooters[]`)**: 미궁 발사기 목록 `{ x, y, vx, vy, intervalMs }`이 `map_init.map` 및 `GET /api/map`에 포함됩니다. 독침 투사체(`kind: "dart"`)는 녹색(`#82d964`)으로 렌더링합니다.
+- 벽면 독침 발사기 (`map.dartShooters[]`): 미궁 발사기 목록 `{ x, y, vx, vy, intervalMs }`이 `map_init.map` 및 `GET /api/map`에 포함됩니다. 독침 투사체(`kind: "dart"`)는 녹색(`#82d964`)으로 그립니다.
 
 ---
 
 ## 벽 타일 및 모서리 연결 규칙
 
-벽 타일(`tid ∈ {2, 8, 12, 13}`)은 상하좌우(`openN/S/E/W`)와 대각선 4방향(`openNE/NW/SE/SW`) 인접 타일이 열린 바닥(`open ∈ {1, 3, 4, 5, 6, 7, 9, 10, 11, 14, 15}`)인지 확인해 **2단계 패스(바탕·벽돌면 -> 지붕 석재 테두리·모서리 접합)**로 그립니다. 상·하 석재 테두리는 `y = gy - 5..gy - 1`, 좌·우 석재 테두리는 5px 폭(`x = gx + 11..15` / `gx + 0..4`)에 정렬합니다.
+벽 타일(`tid ∈ {2, 8, 12, 13}`)은 상하좌우(`openN/S/E/W`)와 대각선 4방향(`openNE/NW/SE/SW`) 인접 타일이 열린 바닥(`open ∈ {1, 3, 4, 5, 6, 7, 9, 10, 11, 14, 15}`)인지 확인해 2단계(바탕·벽돌면 -> 지붕 석재 테두리·모서리 접합)로 그립니다. 상·하 석재 테두리는 `y = gy - 5..gy - 1`, 좌·우 석재 테두리는 5px 폭(`x = gx + 11..15` / `gx + 0..4`)에 정렬합니다.
 
-1. **1단계 (바탕과 남향 벽돌면)**:
+1. 1단계 (바탕과 남향 벽돌면)
    - `openS`: 16px 폭의 `wh_brick_m` 또는 `wh_brick_alt`를 `(gx, gy - 16)`에 그립니다(`tid === 12`는 `wh_lava_f{0..2}`, `tid === 13`은 `wh_blue_f{0..2}`를 `(gx, gy - 12)`에 덧그림).
    - `!openS`: 타일 내부를 `#181415`로 채웁니다.
-2. **2단계 (지붕 석재 테두리와 8방향 모서리 마감)**:
-   - **돌출 문턱 모서리 (`openS && wallN`)**: `openW`이면 `wall_edge_bottom_left`, `openE`이면 `wall_edge_bottom_right`를 `(gx, gy - 16)`에 그려 수직 테두리가 남향 벽 상단(`└` / `┘`)으로 이어지게 합니다.
-   - **좌·우 측면 벽 (`!openS`)**: `openE`이면 `wall_outer_mid_left`, `openW`이면 `wall_outer_mid_right`를 `(gx, gy)`에 그립니다.
-   - **상단 오목 모서리 (`!openS`)**: `!openE && openSE && wallR`이면 `wall_outer_mid_left`를 `(gx, gy)`에 그려 왼쪽 수직 테두리를 상단 `┌` 모서리(`gx + 11, gy - 5`)까지 잇습니다. 우측(`!openW && openSW && wallL`)은 대칭으로 `wall_outer_mid_right`와 `┐` 모서리(`gx, gy - 5`)를 연결합니다.
-   - **하단 경계 벽과 하단 모서리 (`!openS`)**: `openN`이면 `wall_top_mid`를 `(gx, gy - 16)`에 그리고, 돌출 모서리(`openW` / `openE`)와 오목 모서리(`!openN && !openE && openNE` / `!openN && !openW && openNW`)의 5×5 접합부(`#c8b8a4` 상단, `#8d7f74` 측면, `#2d2629` 외곽선)를 이어 마감합니다.
-3. **바닥 그림자**:
+2. 2단계 (지붕 석재 테두리와 8방향 모서리 마감)
+   - 돌출 문턱 모서리 (`openS && wallN`): `openW`이면 `wall_edge_bottom_left`, `openE`이면 `wall_edge_bottom_right`를 `(gx, gy - 16)`에 그려 수직 테두리가 남향 벽 상단(`└` / `┘`)으로 이어지게 합니다.
+   - 좌·우 측면 벽 (`!openS`): `openE`이면 `wall_outer_mid_left`, `openW`이면 `wall_outer_mid_right`를 `(gx, gy)`에 그립니다.
+   - 상단 오목 모서리 (`!openS`): `!openE && openSE && wallR`이면 `wall_outer_mid_left`를 `(gx, gy)`에 그려 왼쪽 수직 테두리를 상단 `┌` 모서리(`gx + 11, gy - 5`)까지 잇습니다. 우측(`!openW && openSW && wallL`)은 `wall_outer_mid_right`와 `┐` 모서리(`gx, gy - 5`)를 연결합니다.
+   - 하단 경계 벽과 하단 모서리 (`!openS`): `openN`이면 `wall_top_mid`를 `(gx, gy - 16)`에 그리고, 돌출 모서리(`openW` / `openE`)와 오목 모서리(`!openN && !openE && openNE` / `!openN && !openW && openNW`)의 5×5 접합부(`#c8b8a4` 상단, `#8d7f74` 측면, `#2d2629` 외곽선)를 마감합니다.
+3. 바닥 그림자
    - 열린 바닥 `(x, y)` 위쪽 `(x, y - 1)`이 벽이면 `floor_shadow_{0..3}`을 덧그리고, 왼쪽 `(x - 1, y)`가 벽이면 좌측 3px에 반투명 그림자(`rgba(8,6,7,0.34)`)를 그립니다.
 
 ---
 
 ## 던전 광원 및 렌더링 최적화
 
-1. **던전 광원 (`darkBuffer`)**:
+1. 던전 광원 (`darkBuffer`)
    - 픽셀 버퍼와 같은 크기의 `darkBuffer`를 `rgba(6, 5, 11, 0.62)`로 채운 뒤, `destination-out` 합성으로 광원마다 3단계 동심원을 뚫습니다(내 캐릭터 `72px`, 다른 플레이어 `44px`, 벽 횃불 `56px`, 용암·분수 `44~50px`, 보스 `56~70px`, 점등 룬 발판 `48px`, 투사체 `18~28px`).
    - 메인 픽셀 버퍼 위에 `darkBuffer`를 덮고 각 광원 위치에 색상 글로우를 `lighter` 블렌드로 덧그립니다.
-2. **정적 지형 캐싱**: `map_init` 수신 직후 `72×52` 바닥, 그림자, 정적 벽을 오프스크린 캔버스(`1152×832`)에 1회만 베이크하고 매 프레임 뷰포트 영역만 복사합니다.
-3. **예측·보간 및 확대 출력**: 20Hz 상태 사이에서 내 캐릭터 이동 예측과 원격 엔티티 위치 보간을 수행합니다. 픽셀 버퍼는 정수 배율(`3배`)로 확대 출력하고, 이름표·체력 수치·피해 숫자는 확대 후 디스플레이 캔버스에 그립니다.
-4. **미니맵**: `72×52` 지형을 `scale = 3`(`216×156`) 오프스크린 버퍼에 캐싱한 뒤(`gateOpen` 변경 시 재베이크), 플레이어와 몬스터 점만 덧그립니다.
+2. 정적 지형 캐싱: `map_init` 수신 후 `72×52` 바닥, 그림자, 정적 벽을 오프스크린 캔버스(`1152×832`)에 1회만 그려 두고 매 프레임 뷰포트 영역만 복사합니다.
+3. 예측·보간 및 확대 출력: 20Hz 상태 사이에서 내 캐릭터 이동 예측과 원격 엔티티 위치 보간을 수행합니다. 픽셀 버퍼는 정수 배율(`3배`)로 확대 출력하고, 이름표·체력 수치·피해 숫자는 확대 후 디스플레이 캔버스에 그립니다.
+4. 미니맵: `72×52` 지형을 `scale = 3`(`216×156`) 오프스크린 버퍼에 캐싱한 뒤(`gateOpen` 변경 시 갱신), 플레이어와 몬스터 점만 덧그립니다.

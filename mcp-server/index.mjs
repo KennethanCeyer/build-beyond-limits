@@ -4,6 +4,7 @@
  *
  * Zero external dependencies; runs on Node.js 20+ via stdio.
  */
+import fs from 'node:fs';
 import path from 'node:path';
 import readline from 'node:readline';
 import { fileURLToPath } from 'node:url';
@@ -246,8 +247,16 @@ export async function handleRpcLine(line, { baseUrl = DEFAULT_SERVER_URL, write 
   }
 }
 
-const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
-if (isMain) {
+function isMainModule(metaUrl) {
+  if (!process.argv[1]) return false;
+  try {
+    return fs.realpathSync(process.argv[1]) === fs.realpathSync(fileURLToPath(metaUrl));
+  } catch {
+    return path.resolve(process.argv[1]) === fileURLToPath(metaUrl);
+  }
+}
+
+if (isMainModule(import.meta.url)) {
   const rl = readline.createInterface({ input: process.stdin, terminal: false });
   rl.on('line', (line) => {
     handleRpcLine(line);

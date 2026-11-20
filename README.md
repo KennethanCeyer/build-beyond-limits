@@ -12,11 +12,11 @@
 
 ## 실습 개요 및 동작 구조
 
-이 리포지토리에는 명세서(`specs/`), 에이전트 스킬(`.agents/skills/`), 로컬 MCP 서버(`mcp-server/`), 예제 에셋(`assets/tileset/`)만 포함되어 있으며 완성된 클라이언트나 서버 소스코드는 들어 있지 않습니다. 참가자는 원하는 기술 스택으로 클라이언트를 직접 구현해 라이브 서버에 접속합니다.
+이 리포지토리에는 명세서(`specs/`), 에이전트 스킬(`.agents/skills/`), 로컬 MCP 서버(`mcp-server/`), 예제 에셋(`assets/tileset/`)만 들어 있으며 클라이언트나 서버 소스코드는 포함되어 있지 않습니다. 참가자는 원하는 기술 스택으로 클라이언트를 구현해 라이브 서버에 접속합니다.
 
-- **라이브 게임 서버 (Google Cloud, 20Hz)**: 참가자의 이동·충돌, 공격·막기·패링 판정, 몬스터 AI, 동적 보스 레이드 스케일링, 아이템 드롭, 리더보드를 계산해 브로드캐스트합니다.
-- **참가자 클라이언트 (로컬 PC)**: `POST /api/register`로 코드네임·토큰을 발급받고 `/ws`로 `map_init`(1회)과 `state`(초당 20회)를 수신해 화면에 그리며, 키·마우스 입력 메시지만 서버로 보냅니다(맵 지형·몬스터 동작 로컬 하드코딩 금지).
-- **Antigravity(`agy`) 및 MCP**: `bbl-roguelike` MCP 서버로 라이브 서버 스키마·스프라이트 좌표를 조회하고, `submit-client` 스킬로 완성한 클라이언트 번들과 프리뷰 썸네일을 호스트 쇼케이스 갤러리(`http://34.158.215.133:8081/`)에 1인 1항목 Upsert 방식으로 제출합니다.
+- 게임 서버: 참가자의 이동·충돌, 공격·막기·패링 판정, 몬스터 AI, 아이템 드롭, 리더보드를 계산해 초당 20회 브로드캐스트합니다.
+- 참가자 클라이언트: `POST /api/register`로 코드네임·토큰을 발급받고 `/ws`로 `map_init`과 `state`를 받아 화면에 그리며, 키·마우스 입력 메시지만 서버로 보냅니다.
+- Antigravity(`agy`) 및 MCP: `bbl-roguelike` MCP 서버로 서버 스키마와 스프라이트 좌표를 조회하고, `submit-client` 스킬로 클라이언트 번들과 썸네일을 호스트 갤러리에 제출합니다.
 
 ```mermaid
 flowchart LR
@@ -52,19 +52,19 @@ sequenceDiagram
 
   C->>G: POST /api/gallery/submit (token, title, thumbnailDataUrl, files)
   G->>S: POST /api/auth/verify (token 검증 -> 공식 codename 확인)
-  G-->>C: 1인 1항목 Upsert 저장 완료 (호스트 갤러리에서 즉시 실행 가능)
+  G-->>C: 1인 1항목 Upsert 저장 완료
 ```
 
 </details>
 
 ---
 
-## 핵심 도구 안내 (Antigravity · Gemini 4 · MCP · 스킬)
+## 도구 안내
 
-각 도구가 익숙하다면 다음 설치 단계로 바로 넘어가도 됩니다.
+이미 익숙한 도구는 건너뛰고 다음 설치 단계로 넘어가도 됩니다.
 
 <details>
-<summary><strong>Google Antigravity와 Gemini 4 모델군 비교 (Carbon, Argon, Neon, Hydrogen · Orchestrator)</strong></summary>
+<summary>Google Antigravity와 Gemini 4 모델 비교</summary>
 
 ### Google Antigravity 개요
 
@@ -75,16 +75,16 @@ sequenceDiagram
   </picture>
 </p>
 
-Google Antigravity는 데스크톱 앱(Antigravity App), standalone IDE, 에디터 확장, 터미널 클라이언트인 **Antigravity CLI (`agy`)**, Python SDK를 포괄하는 에이전트 중심 개발 플랫폼입니다. 이 핸즈온에서는 터미널에서 자연어로 파일 탐색, 코드 작성, 테스트·빌드 실행을 수행하는 `agy`를 사용합니다.
+Google Antigravity는 데스크톱 앱, IDE, 에디터 확장, 터미널 클라이언트인 Antigravity CLI(`agy`), Python SDK를 제공하는 개발 플랫폼입니다. 이 실습에서는 터미널에서 파일 탐색, 코드 작성, 빌드·테스트를 수행하는 `agy`를 사용합니다.
 
-- 공식 문서 홈: [https://antigravity.google/docs](https://antigravity.google/docs)
-- 모델 및 요금제 안내: [https://antigravity.google/docs/models](https://antigravity.google/docs/models)
+- 공식 문서: [https://antigravity.google/docs](https://antigravity.google/docs)
+- 지원 모델 및 요금제: [https://antigravity.google/docs/models](https://antigravity.google/docs/models)
 - CLI 레퍼런스: [https://antigravity.google/docs/cli/reference](https://antigravity.google/docs/cli/reference)
 - CLI 활용 가이드: [https://antigravity.google/docs/cli/best-practices](https://antigravity.google/docs/cli/best-practices)
 
-`agy`는 Google **Gemini 4 모델군(`Neon`, `Carbon`, `Argon`, `Hydrogen`)**과 플래너·실행기 자동 협업 모드인 **`Orchestrator`**, 그리고 `Gemini 3.8 Flash`, `Claude Opus/Sonnet 5.5`, `GPT-OSS 120B` 등을 지원합니다. `agy models`로 현재 계정에서 사용 가능한 모델 목록을 조회할 수 있습니다.
+`agy`에서는 Gemini 4 모델군(`Neon`, `Carbon`, `Argon`, `Hydrogen`), 협업 모드인 `Orchestrator`, 그리고 `Gemini 3.8 Flash`, `Claude Opus/Sonnet 5.5`, `GPT-OSS 120B` 등을 선택할 수 있습니다. 현재 계정에서 쓸 수 있는 목록은 `agy models`로 확인합니다.
 
-### Gemini 4 모델군 및 Orchestrator 비교
+### Gemini 4 모델 구성
 
 <p align="center">
   <picture>
@@ -93,54 +93,38 @@ Google Antigravity는 데스크톱 앱(Antigravity App), standalone IDE, 에디�
   </picture>
 </p>
 
-Gemini 4 모델군 4종은 Gemini API 기준 모두 최대 **100만(1M) 토큰 통합 컨텍스트 창**을 지원합니다(단, Antigravity 제품 내 `Neon` 컨텍스트 한도는 최대 `512K` 토큰). 추론 강도(`--effort`)는 **`Neon`·`Hydrogen`이 4단계(`low`, `medium`, `high`, `xhigh`[UI 표기 `Extra`])**, **`Carbon`·`Argon`이 3단계(`low`, `medium`, `high`)**를 지원합니다.
+- `Gemini 4 Carbon`: 복잡한 아키텍처 설계나 원인 분석에 쓰는 상위 추론 모델입니다. Google AI Ultra·Enterprise 요금제 또는 유료 Gemini API 키에서 사용할 수 있습니다.
+- `Gemini 4 Argon`: 소프트웨어 개발과 문서 분석 전반에 쓰는 범용 추론 모델입니다. 유료 Pro·Ultra·Enterprise 요금제에서 지원합니다.
+- `Gemini 4 Neon`: 추론 성능과 응답 속도의 균형을 맞춘 유료 요금제 기본 모델입니다.
+- `Gemini 4 Hydrogen`: 코드 편집이나 반복 실행처럼 빠른 응답이 필요한 작업에 쓰는 경량 모델입니다. 무료·Plus 요금제에서는 `Gemini 3.8 Flash`가 제공됩니다.
+- `Orchestrator`: 상위 모델(`Neon`, `Carbon`, `Argon`)이 설계·검토를 맡고 `Hydrogen`이 코드 수정과 빌드·테스트 실행을 나눠 맡는 모드입니다.
 
-- **Gemini 4 Carbon (`gemini-4-carbon`)**: Argon 기반 최상위 심층 추론 프론티어 모델로, 대규모 아키텍처 설계, 복합 원인 추적, 과학·수학 추론 및 사이버보안 방어에 특화되어 있습니다. *(Antigravity에서는 Google AI Ultra · Enterprise 또는 유료 Gemini API 키에서 사용 가능)*
-- **Gemini 4 Argon (`gemini-4-argon`)**: Gemini 4 세대 최초의 기반 프론티어 MoE 모델로, 실무 소프트웨어 엔지니어링과 법률·금융 등 엔터프라이즈 지식 작업에 적합합니다. *(유료 Google AI Pro · Ultra · Enterprise)*
-- **Gemini 4 Neon (`gemini-4-neon`)**: Carbon에서 파생해 프론티어급 추론 지능과 빠른 종단간 완료 속도·비용 효율을 결합한 주력 모델입니다. *(유료 Google AI Pro · Ultra · Enterprise의 기본 선택 모델)*
-- **Gemini 4 Hydrogen (`gemini-4-hydrogen`)**: Carbon에서 경량·고속화한 일상 코딩·에이전트 실행용 고효율 모델(`Gemini 3.8 Flash` 후속)입니다. *(유료 Google AI Pro · Ultra · Enterprise / Antigravity 무료·Plus 플랜에서는 `Gemini 3.8 Flash` 제공)*
-- **Orchestrator (`Orchestrator (Neon / Carbon / Argon)`)**: 단일 대화 안에서 상위 플래너 모델(`Neon`, `Carbon`, 또는 `Argon`)이 설계·검토를 수행하고 `Hydrogen`이 코드 편집·빌드·테스트 실행을 분담하는 자동 협업 모드입니다(`agy models` 식별자: `gemini-pro-orchestrator-neon`, `gemini-pro-orchestrator`, `gemini-pro-orchestrator-argon`).
-
-### 공식 벤치마크 및 API 요금표
-
-아래 수치는 Google DeepMind 공식 모델 카드([Carbon](https://deepmind.google/models/model-cards/gemini-4-carbon/), [Argon](https://deepmind.google/models/model-cards/gemini-4-argon/), [Neon](https://deepmind.google/models/model-cards/gemini-4-neon/), [Hydrogen](https://deepmind.google/models/model-cards/gemini-4-hydrogen/)), 공식 평가 방법론 리포트([Carbon PDF](https://deepmind.google/models/evals-methodology/gemini-4-carbon/), [Argon PDF](https://deepmind.google/models/evals-methodology/gemini-4-argon/), [Neon PDF](https://deepmind.google/models/evals-methodology/gemini-4-neon/), [Hydrogen PDF](https://deepmind.google/models/evals-methodology/gemini-4-hydrogen/)), 공식 발표 블로그([Carbon](https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-4-carbon-now-available/), [Argon](https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-gemini-4-argon/), [Neon](https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-gemini-4-neon/), [Hydrogen](https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-gemini-4-hydrogen/)), 및 공식 요금 문서([Google Cloud Model Garden](https://cloud.google.com/model-garden/pricing), [Gemini API Pricing](https://ai.google.dev/gemini-api/docs/pricing)) 기준입니다(미공개 항목 `-`).
-
-> **벤치마크 비교 시 유의사항**: 모델별 출시 시점(2026년 10~11월)에 따라 평가 하네스(`mini-swe-agent` 단일 에이전트 vs 서브에이전트 팬아웃이 포함된 `Antigravity-CLI`), 벤치마크 버전(`Terminal-Bench 4.0` vs `4.1`, `CWE-bench v1` vs `v2`), 추론 강도(`high` vs `xhigh`), 보안 프로그램 권한(`Fairwind Program`)이 다르므로 조건이 다른 항목은 행을 분리하거나 괄호로 조건을 명시했습니다.
+### 주요 사양 · 벤치마크 · API 요금
 
 | 항목 | Gemini 4 Carbon | Gemini 4 Argon | Gemini 4 Neon | Gemini 4 Hydrogen |
 | :--- | :---: | :---: | :---: | :---: |
-| API 모델 식별자 | `gemini-4-carbon` | `gemini-4-argon` | `gemini-4-neon` | `gemini-4-hydrogen` |
-| `agy` CLI 모델 식별자 | `gemini-4-carbon-{low,medium,high}` | `gemini-4-argon-{low,medium,high}` | `gemini-4-neon-{low,medium,high,xhigh}` | `gemini-4-hydrogen-{low,medium,high,xhigh}` |
-| API 컨텍스트 창 | 100만 토큰 | 100만 토큰 | 100만 토큰 (`agy` 내 최대 512K) | 100만 토큰 |
-| 지원 추론 강도 | 3단계 (`low`~`high`) | 3단계 (`low`~`high`) | 4단계 (`low`~`xhigh`) | 4단계 (`low`~`xhigh`) |
-| AA Index | 59 (`v5.0`) | 50 (`v5.0`) | 61 (`v5.0.1`, `xhigh`) | 51 (`high`) / 54 (`xhigh`) |
-| Vals Index v2.2 | 70.4% | 69.2% | 70.9% | - |
-| SWE-sweep (`mini-swe-agent` 하네스) | 9.6% | 4.3% | 12.8% | - |
-| SWE-sweep (`Antigravity-CLI` 하네스) | - | - | 39.0% (`v1.5.9`) | 13.5% (`v1.4.8`) |
-| Terminal-Bench 4.0 (`AA`) | 65.2% | 57.1% | - | - |
-| Terminal-Bench 4.1 (Cheating-adjusted) | - | - | 65.2% (`agy v1.5.9`, `xhigh`) | 57.0% (`mini-swe`, `high`) |
-| Agents' Last Exam v1.1 (Score) | 77.4% (`ALE-Claw`) | 69.0% (`ALE-Claw`) | 75.8% (`agy v1.4.8`) | 71.6% (`agy v1.4.8`) |
-| Terminal-Bench-Science 0.1 | 64.8% (`AA`) | 52.9% (`AA`) | 70.5% (자체 측정) | 51.4% (자체 측정) |
-| RiemannBench | 80.0% | 76.0% | 84.0% | - |
-| HLE-Diamond | - | - | 71.3% | 58.8% |
-| Chartography | 72.5% | 71.6% | 73.5% | 66.6% |
-| GraphWalks (`256k~1M`, BFS F1) | 96.2% | 84.2% | 95.2% | - |
-| CWE-bench (`Fairwind` 보안 평가) | 71.0% (`v1`) | 68.0% (`v1`) | 70.7% (`v2`, Carbon 대비 `+3.4%`p) | - |
-| SEC-bench Pro (`Fairwind` 보안 평가) | 88.2% | 83.4% | 90.5% | - |
-| **API 입력 / 출력 정가** *(Global, 1M 토큰)* | **$4.00 / $20.00** *(2026.12.01~)* | **$4.00 / $20.00** *(2026.12.01~)* | **$3.00 / $15.00** | **$1.50 / $7.50** |
-| **출시 프로모션 요금** *(~2026.11.30)* | $2.00 / $10.00 *(50% 크레딧 환급)* | $2.00 / $10.00 *(50% 크레딧 환급)* | 해당 없음 (정가 동일) | 해당 없음 (정가 동일) |
-| **캐시 읽기 / 캐시 쓰기** *(Global, 1M 토큰)* | $0.20 *(~11.30: $0.10)* / `N/A` | $0.20 *(~11.30: $0.10)* / `N/A` | $0.15 / $3.75 | $0.075 / $1.875 |
+| API 모델 ID | `gemini-4-carbon` | `gemini-4-argon` | `gemini-4-neon` | `gemini-4-hydrogen` |
+| 추론 강도 (`--effort`) | `low` ~ `high` (3단계) | `low` ~ `high` (3단계) | `low` ~ `xhigh` (4단계) | `low` ~ `xhigh` (4단계) |
+| 컨텍스트 창 | 1M (`agy` 동일) | 1M (`agy` 동일) | 1M (`agy` 내 512K) | 1M (`agy` 동일) |
+| AA Index | 59 | 50 | 61 (`xhigh`) | 51 (`high`) / 54 (`xhigh`) |
+| SWE-sweep (`mini-swe-agent`) | 9.6% | 4.3% | 12.8% | - |
+| SWE-sweep (`Antigravity-CLI`) | - | - | 39.0% | 13.5% |
+| Terminal-Bench | 65.2% (`v4.0`) | 57.1% (`v4.0`) | 65.2% (`v4.1`, `xhigh`) | 57.0% (`v4.1`, `high`) |
+| Agents' Last Exam v1.1 | 77.4% | 69.0% | 75.8% | 71.6% |
+| 입력 / 출력 요금 (1M 토큰) | $4.00 / $20.00 | $4.00 / $20.00 | $3.00 / $15.00 | $1.50 / $7.50 |
+| 캐시 읽기 / 쓰기 (1M 토큰) | $0.20 / - | $0.20 / - | $0.15 / $3.75 | $0.075 / $1.875 |
 
-- **요금 참고**: 모든 단가는 Global 리전 100만 토큰 기준이며(Non-global 리전은 +10%), 출력 요금에는 일반 응답뿐 아니라 **추론(Thinking) 토큰**이 포함됩니다. `Carbon`·`Argon`의 프로모션 단가는 일반 공개 모델에만 2026년 11월 30일까지 적용됩니다(`Cyber Permissive` 제외).
+- 요금은 Global 리전 정가 기준이며 출력 요금에 추론 토큰이 포함됩니다. `Carbon`과 `Argon`은 2026년 11월 30일까지 정가의 50%($2.00 / $10.00, 캐시 읽기 $0.10) 프로모션 단가가 적용됩니다.
+- 세부 평가 조건과 전체 지표는 공식 모델 카드([Carbon](https://deepmind.google/models/model-cards/gemini-4-carbon/) · [Argon](https://deepmind.google/models/model-cards/gemini-4-argon/) · [Neon](https://deepmind.google/models/model-cards/gemini-4-neon/) · [Hydrogen](https://deepmind.google/models/model-cards/gemini-4-hydrogen/)) 및 요금 문서([Vertex AI](https://cloud.google.com/model-garden/pricing) · [Gemini API](https://ai.google.dev/gemini-api/docs/pricing))에서 확인할 수 있습니다.
 
-**Gemini 4 Neon vs 외부 모델 벤치마크 비교표 (출처: [Google Blog: Introducing Gemini 4 Neon](https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-gemini-4-neon/))**
+출처: [Google Blog · Introducing Gemini 4 Neon](https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-gemini-4-neon/)
 
-![Gemini 4 Neon 대 Claude Opus 5.5 · GPT-6.2 Sol 공식 벤치마크 비교표](./assets/gemini-4-benchmarks.png)
+![Gemini 4 Neon 대 Claude Opus 5.5 · GPT-6.2 Sol 벤치마크 비교표](./assets/gemini-4-benchmarks.png)
 
 </details>
 
 <details>
-<summary><strong>MCP 개요 및 `bbl-roguelike` 연동 방법</strong></summary>
+<summary>MCP 개요 및 `bbl-roguelike` 연동 방법</summary>
 
 ### MCP 개요 및 역할
 
@@ -199,12 +183,12 @@ agy mcp list
 </details>
 
 <details>
-<summary><strong>프로젝트 내장 에이전트 스킬 (`roguelike-protocol`, `submit-client`)</strong></summary>
+<summary>프로젝트 내장 에이전트 스킬 (`roguelike-protocol`, `submit-client`)</summary>
 
-에이전트 스킬은 `.agents/skills/` 폴더에 정의된 작업 절차와 스크립트입니다. `build-beyond-limits` 루트에서 `agy`를 실행하면 별도 설치 없이 자동 인식됩니다([Antigravity 스킬 가이드](https://antigravity.google/docs/skills)).
+에이전트 스킬은 `.agents/skills/` 폴더에 정의된 작업 절차와 스크립트입니다. `build-beyond-limits` 루트에서 `agy`를 실행하면 별도 설치 없이 인식됩니다([스킬 문서](https://antigravity.google/docs/skills)).
 
-- **`roguelike-protocol`** ([`SKILL.md`](./.agents/skills/roguelike-protocol/SKILL.md)): MCP 계약 조회 순서와 핵심 명세 문서 경로 안내
-- **`submit-client`** ([`SKILL.md`](./.agents/skills/submit-client/SKILL.md)): 게임 인증 토큰(`token`)으로 브라우저 플레이어 이름(`codename`)을 검증한 뒤, 클라이언트 번들과 프리뷰 썸네일을 호스트 쇼케이스 갤러리(`http://34.158.215.133:8081/`)에 1인 1항목 Upsert 방식으로 제출하는 자동화 스크립트
+- `roguelike-protocol` ([`SKILL.md`](./.agents/skills/roguelike-protocol/SKILL.md)): MCP 계약 조회 순서와 명세 문서 경로 안내
+- `submit-client` ([`SKILL.md`](./.agents/skills/submit-client/SKILL.md)): 게임 인증 `token`으로 플레이어 이름(`codename`)을 확인한 뒤 클라이언트 번들과 썸네일을 호스트 갤러리(`http://34.158.215.133:8081/`)에 업로드하는 스크립트
 
 ```bash
 cd build-beyond-limits
@@ -218,73 +202,67 @@ agy
 
 ## 사전 준비와 인증
 
-실습 전 아래 2가지 도구가 설치되어 있어야 합니다.
+실습 전 아래 두 가지 도구를 설치합니다.
 
-- **Node.js 20 이상**: [다운로드](https://nodejs.org/en/download) (`node -v` 확인)
-- **Git**: [다운로드](https://git-scm.com/downloads) (`git --version` 확인)
+- Node.js 20 이상: [다운로드](https://nodejs.org/en/download) (`node -v` 확인)
+- Git: [다운로드](https://git-scm.com/downloads) (`git --version` 확인)
 
 ### Antigravity CLI 설치
 
-- **macOS 및 Linux**
+- macOS 및 Linux
   ```bash
   curl -fsSL https://antigravity.google/cli/install.sh | bash
   ```
-- **Windows PowerShell**
+- Windows PowerShell
   ```powershell
   irm https://antigravity.google/cli/install.ps1 | iex
   ```
-- **Windows 명령 프롬프트**
+- Windows 명령 프롬프트
   ```cmd
   curl -fsSL https://antigravity.google/cli/install.cmd -o install.cmd && install.cmd && del install.cmd
   ```
 
-설치 후 새 터미널에서 `agy --help`로 동작을 확인합니다.
+설치 후 새 터미널에서 `agy --help`로 실행 여부를 확인합니다.
 
 ### 인증 설정
 
 #### 방법 A. Google 계정 OAuth 로그인
 1. 터미널에서 `agy`를 실행합니다.
-2. 브라우저가 열리면 Google 계정으로 로그인하고 권한을 승인합니다(운영체제 키체인에 토큰 보관).
-3. 계정을 변경할 때는 `agy` 대화창에서 `/logout`을 입력합니다.
+2. 브라우저가 열리면 Google 계정으로 로그인하고 권한을 승인합니다.
+3. 계정을 바꿀 때는 `agy` 대화창에서 `/logout`을 입력합니다.
 
-#### 방법 B. Gemini API 키 인증 (`modelProvider` + `GEMINI_API_KEY`)
-원격 서버·CI 등 브라우저 OAuth 인증이 어려운 환경에서 사용합니다([공식 API 키 인증 문서](https://antigravity.google/docs/install/#using-a-gemini-api-key)).
+#### 방법 B. Gemini API 키 인증
+원격 서버나 CI처럼 브라우저 로그인이 어려운 환경에서 사용합니다([API 키 인증 문서](https://antigravity.google/docs/install/#using-a-gemini-api-key)). `GEMINI_API_KEY` 환경 변수만 설정하면 동작하지 않으므로 `~/.gemini/antigravity-cli/settings.json`의 `"modelProvider": "gemini"` 설정을 함께 넣어야 합니다.
 
-> **중요**: `GEMINI_API_KEY` 환경 변수만 단독으로 등록하면 `agy`에서 아무런 효과가 없습니다. 반드시 `~/.gemini/antigravity-cli/settings.json`에 `"modelProvider": "gemini"`를 함께 설정해야 합니다.
+1단계. API 키 발급 ([Google AI Studio](https://aistudio.google.com/apikey) · [API 키 안내](https://ai.google.dev/gemini-api/docs/api-key))
+1. 좌측 `대시보드 > API 키` 메뉴에서 우측 상단 `+ API 키 만들기` 클릭
+2. `새 키 만들기` 창에서 키 이름과 연결할 Google Cloud 프로젝트를 고른 뒤 `키 만들기` 클릭
+3. 목록에서 `키 복사`를 눌러 `AIza...` 문자열 복사
 
-**1단계. API 키 발급 ([Google AI Studio](https://aistudio.google.com/apikey))**
-1. 왼쪽 메뉴 **Get API key** -> 우측 상단 **+ Create API key** 클릭
-2. Google Cloud 프로젝트 선택 후 **Create API key in existing project** 클릭
-3. 생성된 키 옆 **Copy key**로 `AIza...` 문자열 복사
-
-*(아래 이미지는 클릭 순서를 안내하기 위한 개념 도해입니다.)*
-
-![Google AI Studio API 키 발급 순서 도해](./assets/guide-aistudio-apikey.png)
+![Google AI Studio 한국어 화면 기준 API 키 발급 순서](./assets/guide-aistudio-apikey.png)
 
 <details>
-<summary><strong>Google Cloud Console에서 API 키 발급하기</strong></summary>
+<summary>Google Cloud 콘솔에서 API 키 발급하기</summary>
 
-1. [Google Cloud Console Credentials](https://console.cloud.google.com/apis/credentials) 접속 (**APIs & Services > Credentials**)
-2. **+ CREATE CREDENTIALS > API key** 선택 후 키 복사
-3. [Generative Language API](https://console.cloud.google.com/apis/library/generativelanguage.googleapis.com) 사용 설정 여부 확인
+1. [Google Cloud 콘솔 사용자 인증 정보](https://console.cloud.google.com/apis/credentials) 접속 (`API 및 서비스 > 사용자 인증 정보`)
+2. 상단 `+ 사용자 인증 정보 만들기 > API 키` 선택 후 생성된 키 복사
+3. [Generative Language API](https://console.cloud.google.com/apis/library/generativelanguage.googleapis.com) 사용 설정을 켜고, `키 수정 > API 제한사항`에서 `Generative Language API`로 제한 설정 (제한이 없는 표준 키는 Gemini API 호출이 거부됨)
 
-*(아래 이미지는 클릭 순서를 안내하기 위한 개념 도해입니다.)*
-
-![Google Cloud Console API 키 발급 순서 도해](./assets/guide-gcp-apikey.png)
+![Google Cloud 콘솔 한국어 화면 기준 API 키 발급 순서](./assets/guide-gcp-apikey.png)
 
 </details>
 
-**2단계. `settings.json`에 `"modelProvider": "gemini"` 설정 및 환경 변수 등록 (두 항목 모두 필수)**
-- `~/.gemini/antigravity-cli/settings.json`에 `"modelProvider": "gemini"`를 추가합니다(기존 설정이 있다면 해당 키만 병합).
+2단계. `settings.json` 및 환경 변수 설정
+- `~/.gemini/antigravity-cli/settings.json`에 `"modelProvider": "gemini"`를 추가합니다.
   ```json
   {
     "modelProvider": "gemini"
   }
   ```
-- 터미널에 발급받은 API 키를 등록한 뒤 `agy`를 실행합니다.
-  - **macOS 및 Linux**: `export GEMINI_API_KEY="복사한_API_키"`
-  - **Windows PowerShell**: `$env:GEMINI_API_KEY="복사한_API_키"`
-- 다시 Google 계정 OAuth 로그인으로 돌아가려면 `settings.json`에서 `"modelProvider"` 항목을 제거한 뒤 `agy`를 재실행합니다(API 키 모드에서는 `/logout`이 동작하지 않습니다).
+- 터미널에 API 키를 등록하고 `agy`를 실행합니다.
+  - macOS 및 Linux: `export GEMINI_API_KEY="복사한_API_키"`
+  - Windows PowerShell: `$env:GEMINI_API_KEY="복사한_API_키"`
+- 다시 OAuth 로그인으로 전환할 때는 `settings.json`에서 `"modelProvider"` 항목을 지운 뒤 재실행합니다.
 
 ---
 
@@ -292,10 +270,10 @@ agy
 
 | 구분 | 주소 | 설명 |
 | :--- | :--- | :--- |
-| 실시간 중계 화면 | `http://34.158.215.133:8080` | 던전 관전 및 3대 부문(보스 클리어·최다 레벨·PvP) 실시간 순위표 |
-| 실시간 WebSocket | `ws://34.158.215.133:8080/ws` | `map_init`, 20Hz `state`(기본값: `BBL-BIN v1` + Deflate, 디버깅 시 `?encoding=json`), 입력·행동 송수신 |
-| REST API 접두 경로 | `http://34.158.215.133:8080/api/*` | [`/api/health`](http://34.158.215.133:8080/api/health), `/api/register`, `/api/auth/verify`, `/api/map`, `/api/tileset`, `/api/leaderboard` *(단독 `/api` 호출은 404)* |
-| 호스트 클라이언트 갤러리 | `http://34.158.215.133:8081` | 참가자 제출 클라이언트 Upsert 쇼케이스 뷰어(`POST /api/gallery/submit` 공개, 열람·플레이는 호스트 전용) |
+| 실시간 중계 화면 | `http://34.158.215.133:8080` | 던전 관전 및 3개 부문 순위표 |
+| 실시간 WebSocket | `ws://34.158.215.133:8080/ws` | `map_init`, 20Hz `state`, 입력·행동 송수신 (`?encoding=json` 디버깅 지원) |
+| REST API | `http://34.158.215.133:8080/api/*` | [`/api/health`](http://34.158.215.133:8080/api/health), `/api/register`, `/api/auth/verify`, `/api/map`, `/api/tileset`, `/api/leaderboard` (`/api` 단독 호출은 404) |
+| 호스트 클라이언트 갤러리 | `http://34.158.215.133:8081` | 참가자 제출 클라이언트 쇼케이스 (`POST /api/gallery/submit`) |
 | 예제 타일셋 이미지 | `http://34.158.215.133:8080/assets/tileset/dungeon_autotile_16x16.png` | 512×640 CC0 픽셀 아트 시트 |
 
 ### 리포지토리 클론 및 `agy` 실행
@@ -672,6 +650,16 @@ build-beyond-limits/
 │   ├── TILESET_AND_RENDERING.md  # 타일 ID, 2.5D 벽·모서리 규칙, 광원 렌더링 명세
 │   └── COMBAT_AND_VFX.md         # 체력·부활, 전투·스킬, 보스 패턴, 이벤트 명세
 └── assets/
+    ├── logo.png                  # 프로젝트 로고
+    ├── logos/                    # Antigravity, Gemini, MCP 공식 로고 (라이트/다크)
+    ├── agy-cli-guide.svg         # agy CLI 명령 실행 예시 콘솔 가이드
+    ├── gemini-4-benchmarks.png   # Gemini 4 Neon 발표 블로그 벤치마크 비교표
+    ├── guide-aistudio-apikey.png # Google AI Studio (한국어) API 키 발급 화면 안내
+    ├── guide-gcp-apikey.png      # Google Cloud 콘솔 (한국어) API 키 발급 화면 안내
+    ├── guide-tileset-map.png     # 예제 타일셋 구조 안내도
+    ├── preview-client-combat.gif # 근접 전투·방패 막기·강공격 플레이 GIF
+    ├── preview-client-magic.gif  # 원거리 마법·광원 플레이 GIF
+    ├── preview-broadcast.gif     # 실시간 중계 화면 플레이 GIF
     └── tileset/                  # CC0 16x16 게임 타일셋 이미지 및 좌표 목록
 ```
 

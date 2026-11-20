@@ -42,20 +42,20 @@ sequenceDiagram
 ```
 
 ### 구현 순서 체크리스트
-1. **계정 등록 및 토큰 동기화 (`POST /api/register`, `?token=`)**: URL 쿼리 `?token=<TOKEN>`이 있으면 해당 토큰을 우선 채택하고, 없으면 `localStorage`(`bbl_player_identity_v1`)를 확인한 뒤 최초 1회 `POST /api/register`를 호출해 고유 코드네임, 비밀 인증 `token`, 6자리 검증 코드(`verifyCode`)를 저장하기 (`submit-client` 갤러리 제출 시 브라우저와 동일한 `codename` 보장)
-2. **WebSocket 연결**: `ws://<HOST>:8080/ws?token=<token>`에 `ws.binaryType = 'arraybuffer'`로 연결하기 (기본값은 바이너리 `BBL-BIN v1` + `perMessageDeflate` 압축이며, 디버깅할 때만 `&encoding=json` 사용)
-3. **`map_init` 처리 (로컬 하드코딩 금지)**:
-   - 맵 타일·구역 좌표·몬스터 AI·직업 및 스킬 카탈로그를 클라이언트에 하드코딩하지 않고 `map_init`의 `map.width`(72), `map.height`(52), `map.tiles[y][x]`, `map.zones[]`, `map.bossArena`, `map.runePads[]`, `map.gateTiles[]`, `map.dartShooters[]` 및 `rules`를 그대로 저장하기
-   - `httpBase + map_init.tileset.sheetUrl`(`/assets/tileset/dungeon_autotile_16x16.png?v=2.5`)로 이미지 불러오기(`img.crossOrigin = 'anonymous'`)
-   - `tileset.sprites[key]`의 `{ x, y, w, h }`로 타일·캐릭터·몬스터·무기·갑옷·방패·하트·물약 그리기
-4. **`welcome` 처리**: `playerId`(`p_xxxxxxxxxxxx` 공개 식별자, `token`과 분리됨), `codename`, `verifyCode`, `skin`을 화면에 연결하고, `token`은 재접속용 비밀 키로만 로컬에 보관하기
-5. **직업 선택 (`select_class`)**: `state.me.alive && !state.me.classChosen`일 때 4종 직업(`knight`, `ranger`, `mage`, `berserker`) 선택 창을 띄우고 `0x0A C2S_SELECT_CLASS`(또는 `{ type: "action", seq, action: "select_class", classId }`) 전송하기
-6. **`state` 처리 (20Hz)**:
-   - 수신한 `ArrayBuffer`의 `0x81 S2C_STATE` 바이너리 프레임을 디코딩해 `state.me`의 좌표, 체력(`hp`/`maxHp` 반칸 단위), 직업·주 무기 숙련, 남은 부활 횟수(`revivesLeft`), 분기형 스킬 트리(`skillTree.q` / `skillTree.r`), 가방, 장비, `ackSeq` 갱신하기
-   - `state.events[]`는 해당 틱에 1회만 오므로 즉시 시각·오디오 효과 큐에 넣어 재생하기
-7. **입력 전송 (`input` / `action`)**:
-   - 이동 벡터는 **방향이 바뀔 때만** `0x01 C2S_INPUT`(7바이트) 또는 `type: "input"`으로 전송하기(초당 60개 메시지 제한)
-   - 모든 메시지에 1씩 증가하는 `seq`를 담아 보내고, 서버가 처리한 최신 번호를 `state.me.ackSeq`로 확인하기
+1. 계정 등록 및 토큰 동기화 (`POST /api/register`, `?token=`): URL 쿼리에 `?token=<TOKEN>`이 있으면 그 토큰을 먼저 쓰고, 없으면 `localStorage`(`bbl_player_identity_v1`)를 확인한 뒤 최초 1회 `POST /api/register`를 호출해 코드네임, 인증 `token`, 6자리 `verifyCode`를 저장합니다.
+2. WebSocket 연결: `ws://<HOST>:8080/ws?token=<token>`에 `ws.binaryType = 'arraybuffer'`로 연결합니다. 기본 전송은 `BBL-BIN v1` 바이너리 + `perMessageDeflate` 압축이며, 디버깅 시에만 `&encoding=json`을 붙입니다.
+3. `map_init` 처리:
+   - 맵 타일, 구역 좌표, 몬스터 동작, 직업·스킬 목록을 로컬에 하드코딩하지 않고 `map_init`의 `map.width`(72), `map.height`(52), `map.tiles[y][x]`, `map.zones[]`, `map.bossArena`, `map.runePads[]`, `map.gateTiles[]`, `map.dartShooters[]` 및 `rules`를 저장합니다.
+   - `httpBase + map_init.tileset.sheetUrl`(`/assets/tileset/dungeon_autotile_16x16.png?v=2.5`)로 이미지를 불러옵니다(`img.crossOrigin = 'anonymous'`).
+   - `tileset.sprites[key]`의 `{ x, y, w, h }`로 타일, 캐릭터, 몬스터, 무기, 갑옷, 방패, 하트, 물약을 그립니다.
+4. `welcome` 처리: 공개 식별자인 `playerId`(`p_xxxxxxxxxxxx`), `codename`, `verifyCode`, `skin`을 화면에 연결하고 `token`은 재접속용으로만 로컬에 보관합니다.
+5. 직업 선택 (`select_class`): `state.me.alive && !state.me.classChosen`일 때 4종 직업(`knight`, `ranger`, `mage`, `berserker`) 선택 창을 띄우고 `0x0A C2S_SELECT_CLASS` 또는 `{ type: "action", seq, action: "select_class", classId }`를 전송합니다.
+6. `state` 처리 (20Hz):
+   - 수신한 `ArrayBuffer`의 `0x81 S2C_STATE` 프레임을 디코딩해 `state.me`의 좌표, 반칸 단위 체력(`hp`/`maxHp`), 직업·주 무기 숙련, 부활 횟수(`revivesLeft`), 스킬 트리(`skillTree.q` / `skillTree.r`), 가방, 장비, `ackSeq`를 갱신합니다.
+   - `state.events[]`는 해당 틱에 1회만 오므로 시각·오디오 효과 큐에 넣어 재생합니다.
+7. 입력 전송 (`input` / `action`):
+   - 이동 벡터는 방향이 바뀔 때만 `0x01 C2S_INPUT`(7바이트) 또는 `type: "input"`으로 보냅니다(초당 60개 메시지 제한).
+   - 모든 메시지에 1씩 증가하는 `seq`를 담아 보내고, 서버가 처리한 번호를 `state.me.ackSeq`로 확인합니다.
 
 ---
 
@@ -123,8 +123,8 @@ Base URL 접두 경로: `http://34.158.215.133:8080/api/*` *(단독 `GET /api` �
 통합 512×640 타일셋 매니페스트(`/api/tileset` 역시 사전 압축 `gzip` 지원)와 실시간 리더보드를 조회합니다.
 
 ### 호스트 갤러리 제출 (`POST http://34.158.215.133:8081/api/gallery/submit`)
-참가자가 완성한 클라이언트 웹 번들과 썸네일을 1인 1항목 **Upsert** 방식으로 제출합니다(`.agents/skills/submit-client/scripts/submit-client.mjs` 사용).
-- 갤러리 서버는 제출받은 `token`을 게임 서버 `POST /api/auth/verify`로 검증하여 반환된 `codename`을 작성자 식별자로 고정합니다(임의 작성자명 지정 불가, 재제출 시 기존 항목 덮어쓰기 및 `revision` 증가).
+완성한 클라이언트 웹 번들과 썸네일을 1인 1항목 갱신(Upsert) 방식으로 제출합니다(`.agents/skills/submit-client/scripts/submit-client.mjs` 사용).
+- 갤러리 서버는 전달받은 `token`을 게임 서버 `POST /api/auth/verify`로 검증해 반환된 `codename`을 작성자 식별자로 사용합니다. 같은 플레이어가 다시 제출하면 기존 항목이 덮어써지고 `revision`이 올라갑니다.
 ```json
 {
   "token": "6d2e89d1-3d2a-4c9a-9e87-9f281a241b02",
@@ -154,20 +154,20 @@ Base URL 접두 경로: `http://34.158.215.133:8080/api/*` *(단독 `GET /api` �
 - 클라이언트에서 `ws.binaryType = 'arraybuffer'`를 지정하면 초기 제어 메시지(`map_init`, `welcome`, 1Hz `leaderboard`)는 텍스트 JSON으로, 20Hz 상태(`0x81`)와 `pong`(`0x8F`)은 바이너리 `ArrayBuffer`로 수신됩니다(브라우저가 `perMessageDeflate` 압축 해제를 자동 수행).
 - 디버깅 시 평문 JSON이 필요하면 `?encoding=json` 쿼리를 붙입니다. C2S 송신은 어느 모드에서나 바이너리와 JSON(`type: "input" | "action" | "ping"`)을 모두 수락합니다.
 
-### 실측 패킷 크기 비교 (플레이어 10명 · 몬스터 25마리 기준)
+### 패킷 크기 비교 (플레이어 10명 · 몬스터 25마리 기준)
 
-| 메시지 | 평문 JSON | 바이너리 (`BBL-BIN v1`) | 바이너리 + Deflate 압축 | 총 절감률 |
+| 메시지 | 평문 JSON | 바이너리 (`BBL-BIN v1`) | 바이너리 + Deflate 압축 | 절감률 |
 | :--- | :---: | :---: | :---: | :---: |
-| 20Hz 월드 상태 (`state` + `me`) | `22,213 bytes` | `4,258 bytes` (`-80.8%`) | `2,658 bytes` (슬라이딩 윈도우 시 더 축소) | **88.0% 이상 절감 (8.4배 축소)** |
-| 이동 입력 (`input`) | `38 bytes` | `7 bytes` | `7 bytes` (`<512B` 임계값 미만, 압축 생략) | **81.6% 절감 (5.4배 축소)** |
-| `ping` / `pong` | `15 / 38 bytes` | `5 / 9 bytes` | `5 / 9 bytes` | **75% 절감** |
+| 20Hz 월드 상태 (`state` + `me`) | `22,213 bytes` | `4,258 bytes` | `2,658 bytes` | 약 88% |
+| 이동 입력 (`input`) | `38 bytes` | `7 bytes` | `7 bytes` (`<512B` 압축 생략) | 약 82% |
+| `ping` / `pong` | `15 / 38 bytes` | `5 / 9 bytes` | `5 / 9 bytes` | 약 75% |
 
 ### 양자화 및 문자열 풀 규칙
-- **월드 좌표 `(x, y)`**: `uint16` = `Math.round(v * 100)` (`0.01` 타일 정밀도, 최대 `655.35` 타일, 2바이트)
-- **단위 방향 벡터 `(dx, dy)`**: `int8` = `Math.round(v * 100)` (`-100..100`, 1바이트)
-- **속도 `(vx, vy)`**: `int16` = `Math.round(v * 100)` (2바이트)
-- **비율 (`charge`, `progress`, `fadeAlpha`, `critChance`, `blockReduction`)**: `uint8` (`0..100`, 1바이트)
-- **StringPool**: `S2C_STATE` 프레임 안의 반복 문자열(스프라이트 키, 색상, 몬스터 이름 등)을 헤더 직후 풀에 1회만 저장하고 엔티티 레코드에서는 `uint16` 인덱스로 참조합니다.
+- 월드 좌표 `(x, y)`: `uint16` = `Math.round(v * 100)` (`0.01` 타일 단위, 최대 `655.35` 타일, 2바이트)
+- 단위 방향 벡터 `(dx, dy)`: `int8` = `Math.round(v * 100)` (`-100..100`, 1바이트)
+- 속도 `(vx, vy)`: `int16` = `Math.round(v * 100)` (2바이트)
+- 비율 (`charge`, `progress`, `fadeAlpha`, `critChance`, `blockReduction`): `uint8` (`0..100`, 1바이트)
+- StringPool: `S2C_STATE` 프레임 안의 반복 문자열(스프라이트 키, 색상, 몬스터 이름 등)을 헤더 뒤에 한 번만 기록하고 엔티티 레코드에서는 `uint16` 인덱스로 참조합니다.
 
 ### Client -> Server 패킷 다이어그램 (`C2S_*`)
 
@@ -183,20 +183,20 @@ Base URL 접두 경로: `http://34.158.215.133:8080/api/*` *(단독 `GET /api` �
 
 | Opcode | 이름 | 바이트 레이아웃 (Little-Endian) | 전체 크기 |
 | :---: | :--- | :--- | :---: |
-| `0x01` | `C2S_INPUT` | `[0] u8 op` \| `[1..4] u32 seq` \| `[5] i8 moveX(-100..100)` \| `[6] i8 moveY(-100..100)` | **7 B** |
-| `0x02` | `C2S_ATTACK` | `[0] u8 op` \| `[1..4] u32 seq` \| `[5] u8 charge(0..100)` \| `[6] i8 aimX` \| `[7] i8 aimY` \| `[8] u8 hasAim(0\|1)` | **9 B** |
-| `0x03` | `C2S_CHARGE_START` | `[0] u8 op` \| `[1..4] u32 seq` | **5 B** |
-| `0x04` | `C2S_GUARD` | `[0] u8 op` \| `[1..4] u32 seq` \| `[5] u8 active(0\|1)` | **6 B** |
-| `0x05` | `C2S_DASH` | `[0] u8 op` \| `[1..4] u32 seq` \| `[5] i8 dirX` \| `[6] i8 dirY` \| `[7] u8 hasDir(0\|1)` | **8 B** |
-| `0x06` | `C2S_SKILL` | `[0] u8 op` \| `[1..4] u32 seq` \| `[5] u8 slot(0=q,1=r)` \| `[6] i8 aimX` \| `[7] i8 aimY` \| `[8] u8 hasAim` | **9 B** |
-| `0x07` | `C2S_PICKUP` | `[0] u8 op` \| `[1..4] u32 seq` | **5 B** |
-| `0x08` | `C2S_USE_SLOT` | `[0] u8 op` \| `[1..4] u32 seq` \| `[5] u8 slot(0..2)` | **6 B** |
-| `0x09` | `C2S_ALLOCATE_STAT` | `[0] u8 op` \| `[1..4] u32 seq` \| `[5] u8 stat(0=str,1=vit,2=agi)` | **6 B** |
-| `0x0A` | `C2S_SELECT_CLASS` | `[0] u8 op` \| `[1..4] u32 seq` \| `[5] u8 classIdx(0=knight,1=ranger,2=mage,3=berserker)` | **6 B** |
-| `0x0B` | `C2S_LEARN_SKILL` | `[0] u8 op` \| `[1..4] u32 seq` \| `[5] u8 slot(0=q,1=r)` \| `[6] u8 skillIdx(1..6)` | **7 B** |
-| `0x0C` | `C2S_ITEM_ACTION` | `[0] u8 op` \| `[1..4] u32 seq` \| `[5] u8 subOp(0=equip,1=use_item,2=drop_item,3=pickup)` \| `[6] u8 len` \| `[7..] utf8 itemId` | **7+N B** |
-| `0x0D` | `C2S_RESTART_RUN` | `[0] u8 op` \| `[1..4] u32 seq` | **5 B** |
-| `0x0F` | `C2S_PING` | `[0] u8 op` \| `[1..4] u32 clientTs` | **5 B** |
+| `0x01` | `C2S_INPUT` | `[0] u8 op` \| `[1..4] u32 seq` \| `[5] i8 moveX(-100..100)` \| `[6] i8 moveY(-100..100)` | `7 B` |
+| `0x02` | `C2S_ATTACK` | `[0] u8 op` \| `[1..4] u32 seq` \| `[5] u8 charge(0..100)` \| `[6] i8 aimX` \| `[7] i8 aimY` \| `[8] u8 hasAim(0\|1)` | `9 B` |
+| `0x03` | `C2S_CHARGE_START` | `[0] u8 op` \| `[1..4] u32 seq` | `5 B` |
+| `0x04` | `C2S_GUARD` | `[0] u8 op` \| `[1..4] u32 seq` \| `[5] u8 active(0\|1)` | `6 B` |
+| `0x05` | `C2S_DASH` | `[0] u8 op` \| `[1..4] u32 seq` \| `[5] i8 dirX` \| `[6] i8 dirY` \| `[7] u8 hasDir(0\|1)` | `8 B` |
+| `0x06` | `C2S_SKILL` | `[0] u8 op` \| `[1..4] u32 seq` \| `[5] u8 slot(0=q,1=r)` \| `[6] i8 aimX` \| `[7] i8 aimY` \| `[8] u8 hasAim` | `9 B` |
+| `0x07` | `C2S_PICKUP` | `[0] u8 op` \| `[1..4] u32 seq` | `5 B` |
+| `0x08` | `C2S_USE_SLOT` | `[0] u8 op` \| `[1..4] u32 seq` \| `[5] u8 slot(0..2)` | `6 B` |
+| `0x09` | `C2S_ALLOCATE_STAT` | `[0] u8 op` \| `[1..4] u32 seq` \| `[5] u8 stat(0=str,1=vit,2=agi)` | `6 B` |
+| `0x0A` | `C2S_SELECT_CLASS` | `[0] u8 op` \| `[1..4] u32 seq` \| `[5] u8 classIdx(0=knight,1=ranger,2=mage,3=berserker)` | `6 B` |
+| `0x0B` | `C2S_LEARN_SKILL` | `[0] u8 op` \| `[1..4] u32 seq` \| `[5] u8 slot(0=q,1=r)` \| `[6] u8 skillIdx(1..6)` | `7 B` |
+| `0x0C` | `C2S_ITEM_ACTION` | `[0] u8 op` \| `[1..4] u32 seq` \| `[5] u8 subOp(0=equip,1=use_item,2=drop_item,3=pickup)` \| `[6] u8 len` \| `[7..] utf8 itemId` | `7+N B` |
+| `0x0D` | `C2S_RESTART_RUN` | `[0] u8 op` \| `[1..4] u32 seq` | `5 B` |
+| `0x0F` | `C2S_PING` | `[0] u8 op` \| `[1..4] u32 clientTs` | `5 B` |
 
 ### Server -> Client 패킷 다이어그램 (`0x81 S2C_STATE`, `0x8F S2C_PONG`)
 
@@ -230,19 +230,19 @@ Base URL 접두 경로: `http://34.158.215.133:8080/api/*` *(단독 `GET /api` �
 +-------------------------------------------------------------------------------+
 ```
 
-- **헤더 플래그 `[14] F`**: `bit0=pvpEnabled`, `bit1=hasPuzzle`, `bit2=hasTimer`, `bit3=hasMe`
-- **50인 브로드캐스트 최적화**: 공유 월드 영역(헤더~Events)을 틱당 1회만 바이너리 인코딩하고, 각 플레이어 소켓에는 개인 `me` 바이트만 뒤에 이어 붙여(`bit3` 활성화) 전송합니다.
+- 헤더 플래그 `[14] F`: `bit0=pvpEnabled`, `bit1=hasPuzzle`, `bit2=hasTimer`, `bit3=hasMe`
+- 브로드캐스트 구조: 공유 월드 영역(헤더~Events)을 틱당 1회만 인코딩하고, 각 플레이어 소켓에는 개인 `me` 바이트만 뒤에 이어 붙여(`bit3` 활성화) 전송합니다.
 
 #### 고정 크기 엔티티 레코드 필드 순서
 
 | 레코드 | 크기 | 필드 순서 (Little-Endian) |
 | :--- | :---: | :--- |
-| **Players** | `36 B` | `u16 idStr`, `u16 codenameStr`, `u8 skinIdx`, `u16 x100`, `u16 y100`, `i8 dirX100`, `i8 dirY100`, `u16 flags`, `u8 charging100`, `u16 invulnMs`, `u8 hp`, `u8 maxHp`, `u8 level`, `u16 respawnInMs`, `u8 weaponClassIdx`, `u8 weaponRarityIdx`, `u16 weaponSpriteStr`, `u8 shieldRarityIdx`, `u16 shieldSpriteStr`, `u16 bossKills`, `u32 bossDamage`, `u16 pvpKills`<br>플래그(`u16`): `bit0=facingLeft`, `bit1=moving`, `bit2=dashing`, `bit3=attacking`, `bit4=guarding`, `bit5=parrying`, `bit6=hit`, `bit7=invulnerable`, `bit8=alive` |
-| **Monsters** | `33 B` | `u16 idStr`, `u16 uuidStr`, `u16 typeStr`, `u8 archIdx`, `u8 aiStateIdx`, `u8 windupKindIdx`, `u8 windupProg100`, `i8 windupDirX100`, `i8 windupDirY100`, `u8 flags`, `u16 nameStr`, `u16 spriteBaseStr`, `u16 projColorStr`, `u16 auraColorStr`, `u8 tier`, `u8 bossTier`, `u8 phase`, `u8 size100`, `u16 x100`, `u16 y100`, `u16 hp`, `u16 maxHp`<br>플래그(`u8`): `bit0=stunned`, `bit1=slowed`, `bit2=vulnerable`, `bit3=singleAnim`, `bit4=isBoss`, `bit5=hit`, `bit6=facingLeft`, `bit7=moving`<br>`auraColorStr` 형식: 빈 문자열 `""`이면 `null`, 색상이 있으면 `"rgb:R,G,B"` (예: `"rgb:205,52,42"` -> `[205, 52, 42]`) |
-| **Projectiles** | `13 B` | `u16 idStr`, `u16 x100`, `u16 y100`, `i16 vx100`, `i16 vy100`, `u8 kindAndHeavy` (`bits0..2=kind`, `bit7=heavy`), `u16 colorStr` |
-| **Waves** | `15 B` | `u16 idStr`, `u16 labelStr`, `u16 x100`, `u16 y100`, `u16 radius100`, `u16 maxRadius100`, `u8 bandWidth100`, `u16 colorStr` |
-| **Traps** | `4 B` | `u8 x`, `u8 y`, `u8 phaseIdx`, `u8 frame` |
-| **Telegraphs** | `22 B` | `u16 idStr`, `u16 patternStr`, `u16 labelStr`, `u8 shapeIdx`, `u16 x100`, `u16 y100`, `u16 p1_100`, `u16 p2_100`, `u8 bX1`, `u8 bY1`, `u8 bX2`, `u8 bY2`, `u8 damage`, `u8 progress100`, `u8 triggered`<br>`shapeIdx`별 `p1_100`/`p2_100` 해석 (`×100` 양자화, 디코딩 시 `/100`): `0=circle` -> `radius=p1_100/100` (`p2=0`), `1=cross` -> `halfWidth=p1_100/100` 및 `bounds={x1:bX1, y1:bY1, x2:bX2, y2:bY2}`, `2=ring` -> `innerRadius=p1_100/100`, `outerRadius=p2_100/100` |
+| `Players` | `36 B` | `u16 idStr`, `u16 codenameStr`, `u8 skinIdx`, `u16 x100`, `u16 y100`, `i8 dirX100`, `i8 dirY100`, `u16 flags`, `u8 charging100`, `u16 invulnMs`, `u8 hp`, `u8 maxHp`, `u8 level`, `u16 respawnInMs`, `u8 weaponClassIdx`, `u8 weaponRarityIdx`, `u16 weaponSpriteStr`, `u8 shieldRarityIdx`, `u16 shieldSpriteStr`, `u16 bossKills`, `u32 bossDamage`, `u16 pvpKills`<br>플래그(`u16`): `bit0=facingLeft`, `bit1=moving`, `bit2=dashing`, `bit3=attacking`, `bit4=guarding`, `bit5=parrying`, `bit6=hit`, `bit7=invulnerable`, `bit8=alive` |
+| `Monsters` | `33 B` | `u16 idStr`, `u16 uuidStr`, `u16 typeStr`, `u8 archIdx`, `u8 aiStateIdx`, `u8 windupKindIdx`, `u8 windupProg100`, `i8 windupDirX100`, `i8 windupDirY100`, `u8 flags`, `u16 nameStr`, `u16 spriteBaseStr`, `u16 projColorStr`, `u16 auraColorStr`, `u8 tier`, `u8 bossTier`, `u8 phase`, `u8 size100`, `u16 x100`, `u16 y100`, `u16 hp`, `u16 maxHp`<br>플래그(`u8`): `bit0=stunned`, `bit1=slowed`, `bit2=vulnerable`, `bit3=singleAnim`, `bit4=isBoss`, `bit5=hit`, `bit6=facingLeft`, `bit7=moving`<br>`auraColorStr` 형식: 빈 문자열 `""`이면 `null`, 색상이 있으면 `"rgb:R,G,B"` (예: `"rgb:205,52,42"` -> `[205, 52, 42]`) |
+| `Projectiles` | `13 B` | `u16 idStr`, `u16 x100`, `u16 y100`, `i16 vx100`, `i16 vy100`, `u8 kindAndHeavy` (`bits0..2=kind`, `bit7=heavy`), `u16 colorStr` |
+| `Waves` | `15 B` | `u16 idStr`, `u16 labelStr`, `u16 x100`, `u16 y100`, `u16 radius100`, `u16 maxRadius100`, `u8 bandWidth100`, `u16 colorStr` |
+| `Traps` | `4 B` | `u8 x`, `u8 y`, `u8 phaseIdx`, `u8 frame` |
+| `Telegraphs` | `22 B` | `u16 idStr`, `u16 patternStr`, `u16 labelStr`, `u8 shapeIdx`, `u16 x100`, `u16 y100`, `u16 p1_100`, `u16 p2_100`, `u8 bX1`, `u8 bY1`, `u8 bX2`, `u8 bY2`, `u8 damage`, `u8 progress100`, `u8 triggered`<br>`shapeIdx`별 해석 (`×100` 양자화): `0=circle` -> `radius=p1_100/100` (`p2=0`), `1=cross` -> `halfWidth=p1_100/100` 및 `bounds={x1:bX1, y1:bY1, x2:bX2, y2:bY2}`, `2=ring` -> `innerRadius=p1_100/100`, `outerRadius=p2_100/100` |
 
 ### 바이너리 열거형 인덱스표 및 가변 레코드 레이아웃
 
@@ -279,14 +279,14 @@ Base URL 접두 경로: `http://34.158.215.133:8080/api/*` *(단독 `GET /api` �
    - `bit13`: `u16 projSpeed100, str projColor` / `bit14`: `u8 defBonus` / `bit15`: `str effectKey, str effectName, str effectDesc`
 
 #### `Puzzle`, `BossStatus`, `Private me` 가변 레이아웃
-- **`Puzzle` (`F.bit1=1`)**: `u8 flags(bit0=solved, bit1=gateOpen)`, `u16 clueStr`, `u8 total`, `u8 litLen`, `u16[litLen] litRuneStrs`, `u8 padLen`, `padLen × (u16 id, u16 label, u16 color, u8 x, u8 y)`, `f64 lastWrongAt`
-- **`BossStatus`**: `u8 flags(bit0=alive, bit1=hasKilledBy)`, `u8 tier`, `u8 nextTier`, `u16 bossUuidStr`, `u16 nameStr`, `u32 nextBossInMs` + (`bit1=1`일 때 `u16 codenameStr`, `u16 verifyCodeStr`, `u16 heroicItemStr`)
-- **바이너리 경량 생략 참고**: 20Hz 대역폭 절감을 위해 바이너리 프레임에서는 `telegraphs[]`의 타임스탬프(`createdAt`/`activatesAt`/`expiresAt`, `progress`로 대체)와 `bossStatus`의 부가 메타(`killedAt`, `nextBossAt`, `heroicDrop`, `killedBy` 내부의 상세 DPS 항목)가 생략됩니다.
-- **`Private me` (`F.bit3=1`, 문자열은 모두 `str8`)**:
+- `Puzzle` (`F.bit1=1`): `u8 flags(bit0=solved, bit1=gateOpen)`, `u16 clueStr`, `u8 total`, `u8 litLen`, `u16[litLen] litRuneStrs`, `u8 padLen`, `padLen × (u16 id, u16 label, u16 color, u8 x, u8 y)`, `f64 lastWrongAt`
+- `BossStatus`: `u8 flags(bit0=alive, bit1=hasKilledBy, bits2..7=raidCount-1)`, `u8 tier`, `u8 nextTier`, `u16 bossUuidStr`, `u16 nameStr`, `u32 nextBossInMs` + (`bit1=1`일 때 `u16 codenameStr`, `u16 verifyCodeStr`, `u16 heroicItemStr`)
+- 바이너리 생략 항목: `telegraphs[]`의 타임스탬프(`createdAt`/`activatesAt`/`expiresAt`, `progress` 사용)와 `bossStatus`의 부가 메타(`killedAt`, `nextBossAt`, `heroicDrop`, `killedBy` 내부 DPS 항목)는 바이너리 프레임에서 생략됩니다.
+- `Private me` (`F.bit3=1`, 문자열은 모두 `str8`):
   - 기본 정보: `id`, `codename`, `verifyCode`, `u8 classIdx`, `className`, `u8 prefWpnClassIdx`, `prefWpnLabel`, `masteryDesc`, `u8 skinIdx`, `u32 ackSeq`
   - 좌표·전투 수치: `u16 x100`, `u16 y100`, `i8 dirX100`, `i8 dirY100`, `u8 hp`, `u8 maxHp`, `u16 atk`, `u16 def`, `u8 blockRed100`, `u16 moveSpeed100`, `u8 crit100`
   - 성장·상태: `u8 level`, `u32 xp`, `u32 xpToNext`, `u8 statPoints`, `u8 skillPoints`, `u8 str`, `u8 vit`, `u8 agi`, `u8 revivesLeft`, `u16 meFlags(bit0=classChosen, bit1=weaponMasteryActive, bit2=alive, bit3=hit, bit4=guarding, bit5=parrying, bit6=dashing, bit7=invulnerable, bit8=inSafeZone, bit9=hasLastRunSummary)`
-  - 타이머·재사용 대기시간: `u8 charging100`, `u16 invulnMs`, `u16 respawnInMs`, `u16 dashCdMs`, `u16 dashMaxCdMs`, `u16 atkCdMs` + (`bit9=1`일 때 `u8 reachedLevel`, `u16 mobKills`, `u16 bossKills`, `f64 endedAt` Unix 밀리초 타임스탬프)
+  - 타이머·재사용 대기시간: `u8 charging100`, `u16 invulnMs`, `u16 respawnInMs`, `u16 dashCdMs`, `u16 dashMaxCdMs`, `u16 atkCdMs` + (`bit9=1`일 때 `u8 reachedLevel`, `u16 mobKills`, `u16 bossKills`, `f64 endedAt`; `classId`·`className`은 `player_death.runSummary` 이벤트와 JSON 모드에만 포함)
   - 스킬·장비·가방·전적: `2 × SkillSlot(u8 skillIdx, str8 name, u8 lv, u8 maxLv, u16 cdMs, u16 maxCdMs)`, `u8 eqMask(bit0=weapon, bit1=shield, bit2=armor) + ItemRecords`, `u8 invLen + ItemRecords`, `u8 buffLen + buffLen × (u8 typeIdx, u16 remMs)`, `u16 mobKills`, `u16 bossKills`, `u16 pvpKills`, `u32 bossDamage`, `u16 bossDps`, `str8 zone`
 
 ### Server -> Client: `map_init` (접속 직후 1회)

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Build Beyond Limits — Client Showcase Gallery Upsert Submission Script
+ * Build Beyond Limits - Client Showcase Gallery Upsert Submission Script
  *
  * Flow:
  * 1. Resolves & verifies the player's game authentication token against Game Server (:8080/api/auth/verify)
@@ -425,8 +425,16 @@ export async function submitClientToGallery({
   };
 }
 
-const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
-if (isMain) {
+function isMainModule(metaUrl) {
+  if (!process.argv[1]) return false;
+  try {
+    return fs.realpathSync(process.argv[1]) === fs.realpathSync(fileURLToPath(metaUrl));
+  } catch {
+    return path.resolve(process.argv[1]) === fileURLToPath(metaUrl);
+  }
+}
+
+if (isMainModule(import.meta.url)) {
   (async () => {
     try {
       const args = parseCliArgs();
