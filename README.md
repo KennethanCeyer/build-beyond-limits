@@ -199,16 +199,15 @@ agy --model gemini-4-neon-high
 </details>
 
 <details>
-<summary><code>AGENTS.md</code> 규칙과 샌드박스 하네스 제어</summary>
+<summary><code>AGENTS.md</code>와 <code>.agents/rules/</code> 규칙 및 샌드박스 제어</summary>
 
-### 1. 상시 로드 규칙 파일 (`AGENTS.md`)
+### 1. 상시 로드 규칙 (`AGENTS.md`, `.agents/rules/*.md`)
 
-리포지토리 루트의 [`AGENTS.md`](./AGENTS.md)는 `build-beyond-limits` 디렉터리에서 `agy`나 Antigravity IDE를 실행할 때 매 턴 자동으로 컨텍스트에 포함되는 워크스페이스 규칙입니다. 자세한 동작 방식은 [Rules 문서](https://antigravity.google/docs/rules)에서 확인할 수 있습니다.
+`build-beyond-limits` 디렉터리에서 `agy`나 Antigravity IDE를 실행하면 루트의 [`AGENTS.md`](./AGENTS.md)와 [`.agents/rules/`](./.agents/rules/) 아래 규칙 파일이 매 턴 자동으로 컨텍스트에 포함됩니다. 자세한 동작 방식은 [Rules 문서](https://antigravity.google/docs/rules)에서 확인할 수 있습니다.
 
-- 작업 경로 보호: 새 클라이언트를 `./client/` 또는 `./my-client/` 아래에 작성하고 기존 `specs/`, `.agents/`, `mcp-server/`, `assets/` 파일을 보존합니다.
-- 서버 권위 데이터 준수: 맵 배열(`72x52`), 구역 좌표, 몬스터 AI, 직업 및 스킬 정보를 하드코딩하지 않고 `map_init`과 `20Hz state` 패킷 값만 사용하도록 제한합니다.
-- 구현 전 검증 순서: 코드 작성 전 `bbl-roguelike` MCP 도구로 서버 상태, 패킷 스키마, 스프라이트 좌표를 먼저 조회하게 합니다.
-- 인증, 렌더링, 보안 기준: `?token=` 쿼리 연동, `0x81 S2C_STATE` 바이트 길이 일치 검증, `img.crossOrigin = 'anonymous'` 및 정수 배율 렌더링, `submit-client` XSS 금지 패턴을 사전에 안내합니다.
+- [`AGENTS.md`](./AGENTS.md): 작업 디렉터리 보호, 서버 권위 데이터 사용, 구현 전 `bbl-roguelike` MCP 조회 순서, 토큰 동기화 및 아카이브 보안 기준
+- [`.agents/rules/pitfalls-and-prohibitions.md`](./.agents/rules/pitfalls-and-prohibitions.md): 금지 패킷 및 보안 위반 패턴과 초당 패킷 제한, `charge_start` 타이밍, 20Hz DOM 갱신 시 클릭 유실, 반칸 체력 단위, HUD 넘침 등 개발 중 자주 겪는 오류 예방 규칙
+- [`.agents/rules/step-verification.md`](./.agents/rules/step-verification.md): Step 1부터 Step 4까지 각 단계를 마친 직후 수행할 문법, 바이트 오프셋, 화면 레이아웃, 제출 전 점검 절차
 
 선호하는 프레임워크(예: React, PixiJS, Phaser)나 개인 코딩 컨벤션이 있다면 [`AGENTS.md`](./AGENTS.md) 하단에 추가하거나 대화창에서 `/learn` 명령으로 규칙을 저장해 매번 프롬프트에 반복 입력하지 않고 유지할 수 있습니다.
 
@@ -746,6 +745,7 @@ build-beyond-limits/
 │   └── index.mjs                 # 라이브 서버 계약, 에셋, 상태 조회용 로컬 MCP 서버
 ├── .agents/
 │   ├── mcp_config.json           # Antigravity 워크스페이스 MCP 서버 설정
+│   ├── rules/                    # 금지 사항, 런타임 함정 예방, 단계별 검증 규칙
 │   └── skills/
 │       ├── roguelike-protocol/   # 프로토콜, 렌더링, 전투 조회 스킬
 │       └── submit-client/        # 클라이언트 아카이브 Upsert 제출 스킬
