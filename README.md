@@ -205,6 +205,8 @@ agy --model gemini-4-neon-high
 
 ## 사전 준비와 인증
 
+> 단계별 화면 안내와 사전 점검 체크리스트만 따로 보려면 **[`docs/SETUP_GUIDE.md`](./docs/SETUP_GUIDE.md)** 문서를 참고하세요.
+
 실습 전 아래 두 가지 도구를 설치합니다.
 
 - Node.js 20 이상: [다운로드](https://nodejs.org/en/download) (`node -v` 확인)
@@ -273,10 +275,10 @@ agy --model gemini-4-neon-high
 
 | 구분 | 주소 | 설명 |
 | :--- | :--- | :--- |
-| 실시간 중계 화면 | `http://34.158.215.133:8080` | 던전 관전 및 3개 부문 순위표 |
+| 실시간 중계 화면 | `http://34.158.215.133:8080` | 발표자 전용 던전 관전 및 3개 부문 순위표 |
 | 실시간 WebSocket | `ws://34.158.215.133:8080/ws` | `map_init`, 20Hz `state`, 입력·행동 송수신 (`?encoding=json` 디버깅 지원) |
 | REST API | `http://34.158.215.133:8080/api/*` | [`/api/health`](http://34.158.215.133:8080/api/health), `/api/register`, `/api/auth/verify`, `/api/map`, `/api/tileset`, `/api/leaderboard` (`/api` 단독 호출은 404) |
-| 호스트 클라이언트 갤러리 | `http://34.158.215.133:8081` | 참가자 제출 클라이언트 쇼케이스 (`POST /api/gallery/submit`) |
+| 클라이언트 아카이브 | `http://34.158.215.133:8081` | 발표자 전용 시연 아카이브 (참가자는 `POST /api/gallery/submit`으로만 제출) |
 | 예제 타일셋 이미지 | `http://34.158.215.133:8080/assets/tileset/dungeon_autotile_16x16.png` | 512×640 CC0 픽셀 아트 시트 |
 
 ### 리포지토리 클론 및 실행
@@ -674,6 +676,8 @@ node .agents/skills/submit-client/scripts/submit-client.mjs \
 ```text
 build-beyond-limits/
 ├── README.md                     # 실습 안내, 모델·요금 비교, 인증 설정, 구현 예시
+├── docs/
+│   └── SETUP_GUIDE.md            # Antigravity 설치 및 Gemini API 키 발급 선행 가이드
 ├── .mcp.json                     # 외부 호환용 MCP 서버 설정 예시
 ├── mcp-server/
 │   └── index.mjs                 # 라이브 서버 계약·에셋·상태 조회용 로컬 MCP 서버
