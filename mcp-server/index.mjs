@@ -2,22 +2,19 @@
 /**
  * Build Beyond Limits: Agentic MCP Server (stdio JSON-RPC 2.0)
  *
- * Enables Antigravity (agy) agents to:
- *  1. Discover exact Protocol v2.0 contracts, combat/parry/skill/puzzle specs & sprite coordinates
- *  2. Inspect live multiplayer world & player state on Google Cloud for real-time debugging
- *  3. Validate client WS payloads against server anti-cheat rules & diagnose connection latency
- *
- * Zero external dependencies; runs cleanly on Node.js 20+ via stdio.
+ * Zero external dependencies; runs on Node.js 20+ via stdio.
  */
+import path from 'node:path';
 import readline from 'node:readline';
+import { fileURLToPath } from 'node:url';
 
-const SERVER_URL = (process.env.BBL_SERVER_URL || 'http://34.158.215.133:8080').replace(/\/+$/, '');
+const DEFAULT_SERVER_URL = (process.env.BBL_SERVER_URL || 'http://34.158.215.133:8080').replace(/\/+$/, '');
 
-const TOOLS = [
+export const TOOLS = [
   {
     name: 'get_protocol_contract',
     description:
-      'Retrieve detailed Protocol v2.0 REST/WebSocket and BBL-BIN v1 binary wire specifications directly from the live Build Beyond Limits server (overview, handshake, binary_protocol, state_schema, events_and_telegraphs, combat_guard_parry, skills_and_tree, weapons_and_loot, bosses_and_waves, maze_puzzle, traps_and_hearts, tileset_sprites).',
+      'Retrieve Protocol v2.0 REST/WebSocket and BBL-BIN v1 binary wire specifications from the live Build Beyond Limits server (overview, handshake, binary_protocol, state_schema, events_and_telegraphs, combat_guard_parry, skills_and_tree, weapons_and_loot, bosses_and_waves, maze_puzzle, traps_and_hearts, tileset_sprites).',
     inputSchema: {
       type: 'object',
       properties: {
@@ -46,7 +43,7 @@ const TOOLS = [
   {
     name: 'get_asset_manifest',
     description:
-      'Fetch exact sprite coordinates { x, y, w, h } and rendering anchors from the live 512x640 dungeon atlas filtered by category.',
+      'Fetch sprite coordinates { x, y, w, h } and rendering anchors from the live 512x640 dungeon atlas filtered by category.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -62,13 +59,13 @@ const TOOLS = [
   {
     name: 'inspect_live_world',
     description:
-      'Inspect live multiplayer dungeon state on GCP: online players, active Boss Tier/HP/3m respawn countdown, PvP flag, 4-Rune Maze Puzzle gate status, and active traps/waves.',
+      'Inspect live multiplayer dungeon state: online players, active Boss Tier/HP/respawn countdown, PvP flag, 4-Rune Maze Puzzle gate status, and active traps/waves.',
     inputSchema: { type: 'object', properties: {} },
   },
   {
     name: 'inspect_player_state',
     description:
-      'Debug a specific player in the live dungeon by codename (e.g. "Crimson-Blade-42") or token. Returns server-authoritative position, hearts, guard/parry/charge state, skillTree, inventory, and ackSeq.',
+      'Debug a player in the live dungeon by codename or token. Returns server-authoritative position, hearts, guard/parry/charge state, skillTree, inventory, and ackSeq.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -80,7 +77,7 @@ const TOOLS = [
   {
     name: 'validate_client_payload',
     description:
-      'Dry-run validate a candidate WebSocket JSON payload against the server Protocol v2.0 schema and anti-cheat rules before sending it.',
+      'Dry-run validate a candidate WebSocket JSON payload against the server Protocol v2.0 schema before sending it.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -92,13 +89,14 @@ const TOOLS = [
   {
     name: 'diagnose_server_health',
     description:
-      'Run live HTTP health, latency, map dimensions, and tileset availability diagnostics against the Build Beyond Limits GCP server.',
+      'Run live HTTP health, latency, map dimensions, and tileset availability diagnostics against the Build Beyond Limits server.',
     inputSchema: { type: 'object', properties: {} },
   },
 ];
 
-async function fetchJson(pathname, init = {}) {
-  const res = await fetch(`${SERVER_URL}${pathname}`, init);
+export async function fetchJson(pathname, init = {}, baseUrl = DEFAULT_SERVER_URL) {
+  const cleanBase = baseUrl.replace(/\/+$/, '');
+  const res = await fetch(`${cleanBase}${pathname}`, init);
   const text = await res.text();
   let json = null;
   try {
@@ -112,7 +110,7 @@ async function fetchJson(pathname, init = {}) {
   return json;
 }
 
-function filterSprites(sprites, category) {
+export function filterSprites(sprites, category) {
   const entries = Object.entries(sprites || {});
   const matchers = {
     heroes: (k) => /^(knight_|wizzard_|elf_|dwarf_|lizard_)/.test(k),
@@ -132,15 +130,16 @@ function filterSprites(sprites, category) {
   return Object.fromEntries(entries.filter(([k]) => fn(k)));
 }
 
-async function callTool(name, args = {}) {
+export async function callTool(name, args = {}, baseUrl = DEFAULT_SERVER_URL) {
+  const serverUrl = baseUrl.replace(/\/+$/, '');
   if (name === 'get_protocol_contract') {
     const topic = encodeURIComponent(args.topic || 'overview');
-    return await fetchJson(`/api/mcp/contract/${topic}`);
+    return await fetchJson(`/api/mcp/contract/${topic}`, {}, serverUrl);
   }
   if (name === 'get_asset_manifest') {
-    const ts = await fetchJson('/api/tileset');
+    const ts = await fetchJson('/api/tileset', {}, serverUrl);
     return {
-      sheetUrl: `${SERVER_URL}${ts.sheetUrl}`,
+      sheetUrl: `${serverUrl}${ts.sheetUrl}`,
       sheetWidth: ts.sheetWidth,
       sheetHeight: ts.sheetHeight,
       tileSize: ts.tileSize,
@@ -150,32 +149,36 @@ async function callTool(name, args = {}) {
     };
   }
   if (name === 'inspect_live_world') {
-    return await fetchJson('/api/mcp/world');
+    return await fetchJson('/api/mcp/world', {}, serverUrl);
   }
   if (name === 'inspect_player_state') {
     const q = encodeURIComponent(args.query || '');
-    const data = await fetchJson(`/api/mcp/player/${q}`);
+    const data = await fetchJson(`/api/mcp/player/${q}`, {}, serverUrl);
     if (data?.privateState && 'token' in data.privateState) {
       delete data.privateState.token;
     }
     return data;
   }
   if (name === 'validate_client_payload') {
-    return await fetchJson('/api/mcp/validate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(args.payload || {}),
-    });
+    return await fetchJson(
+      '/api/mcp/validate',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(args.payload || {}),
+      },
+      serverUrl
+    );
   }
   if (name === 'diagnose_server_health') {
     const t0 = Date.now();
-    const health = await fetchJson('/api/health');
+    const health = await fetchJson('/api/health', {}, serverUrl);
     const rttMs = Date.now() - t0;
-    const map = await fetchJson('/api/map');
-    const ts = await fetchJson('/api/tileset');
+    const map = await fetchJson('/api/map', {}, serverUrl);
+    const ts = await fetchJson('/api/tileset', {}, serverUrl);
     return {
-      serverUrl: SERVER_URL,
-      wsUrl: SERVER_URL.replace(/^http/i, 'ws') + '/ws',
+      serverUrl,
+      wsUrl: serverUrl.replace(/^http/i, 'ws') + '/ws',
       httpRttMs: rttMs,
       health,
       mapDimensions: `${map.width}x${map.height}`,
@@ -190,18 +193,8 @@ async function callTool(name, args = {}) {
   throw new Error(`Unknown tool: ${name}`);
 }
 
-function sendResponse(id, result) {
-  process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id, result }) + '\n');
-}
-
-function sendError(id, code, message) {
-  process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id, error: { code, message } }) + '\n');
-}
-
-const rl = readline.createInterface({ input: process.stdin, terminal: false });
-
-rl.on('line', async (line) => {
-  const trimmed = line.trim();
+export async function handleRpcLine(line, { baseUrl = DEFAULT_SERVER_URL, write = (s) => process.stdout.write(s) } = {}) {
+  const trimmed = String(line || '').trim();
   if (!trimmed) return;
   let req;
   try {
@@ -211,9 +204,11 @@ rl.on('line', async (line) => {
   }
 
   const { id, method, params } = req;
+  const sendResponse = (result) => write(JSON.stringify({ jsonrpc: '2.0', id, result }) + '\n');
+  const sendError = (code, message) => write(JSON.stringify({ jsonrpc: '2.0', id, error: { code, message } }) + '\n');
 
   if (method === 'initialize') {
-    sendResponse(id, {
+    sendResponse({
       protocolVersion: '2024-11-05',
       capabilities: { tools: {} },
       serverInfo: { name: 'bbl-roguelike', version: '2.0.0' },
@@ -226,18 +221,18 @@ rl.on('line', async (line) => {
   }
 
   if (method === 'tools/list') {
-    sendResponse(id, { tools: TOOLS });
+    sendResponse({ tools: TOOLS });
     return;
   }
 
   if (method === 'tools/call') {
     try {
-      const data = await callTool(params?.name, params?.arguments || {});
-      sendResponse(id, {
+      const data = await callTool(params?.name, params?.arguments || {}, baseUrl);
+      sendResponse({
         content: [{ type: 'text', text: JSON.stringify(data, null, 2) }],
       });
     } catch (err) {
-      sendResponse(id, {
+      sendResponse({
         isError: true,
         content: [{ type: 'text', text: `Error calling ${params?.name}: ${err.message}` }],
       });
@@ -246,6 +241,14 @@ rl.on('line', async (line) => {
   }
 
   if (id !== undefined) {
-    sendError(id, -32601, `Method not found: ${method}`);
+    sendError(-32601, `Method not found: ${method}`);
   }
-});
+}
+
+const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (isMain) {
+  const rl = readline.createInterface({ input: process.stdin, terminal: false });
+  rl.on('line', (line) => {
+    handleRpcLine(line);
+  });
+}

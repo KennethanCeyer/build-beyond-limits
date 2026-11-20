@@ -1,6 +1,6 @@
 # Build Beyond Limits 네트워크 및 보안 프로토콜 명세 (v2.0)
 
-이 문서는 클라이언트 소스코드를 보지 않고도 라이브 게임 서버(`http://34.158.215.133:8080`, `ws://34.158.215.133:8080/ws`)와 통신하는 로그라이크 클라이언트를 처음부터 구현할 수 있도록 접속 절차, 바이너리 패킷 구조, 전체 요청·응답 스키마, 서버 검증 규칙을 정리합니다.
+라이브 게임 서버(`http://34.158.215.133:8080`, `ws://34.158.215.133:8080/ws`)의 접속 절차, 바이너리 패킷 레이아웃, JSON 스키마, 서버 검증 규칙을 정의합니다.
 
 ---
 
@@ -132,7 +132,9 @@ Base URL: `http://34.158.215.133:8080/api`
 
 ## 바이너리 패킷 및 압축 전송 (`BBL-BIN v1` + `perMessageDeflate`)
 
-초당 20회 브로드캐스트되는 `state`와 빈번한 클라이언트 입력을 JSON 문자열로 주고받으면 대역폭과 파싱 비용이 크게 늘어납니다. 따라서 서버의 `/ws` 엔드포인트는 **기본적으로 리틀 엔디안 바이너리 프레임(`BBL-BIN v1`)과 RFC 7692 `perMessageDeflate` 슬라이딩 윈도우 압축**을 함께 사용합니다. 클라이언트에서 `ws.binaryType = 'arraybuffer'`만 지정하면 초기 제어 메시지(`map_init`, `welcome`, 1Hz `leaderboard`)를 제외한 모든 20Hz 상태와 입력/행동 메시지가 압축 바이너리로 오갑니다. (브라우저 WebSocket은 `perMessageDeflate` 압축 해제를 네이티브로 자동 처리합니다. 디버깅 시 평문 JSON이 필요하면 `?encoding=json`을 붙여 접속하면 되며, C2S 메시지는 어느 모드에서나 바이너리와 JSON을 모두 수락합니다.)
+- `/ws` 엔드포인트 기본값은 리틀 엔디안 바이너리 프레임(`BBL-BIN v1`) + RFC 7692 `perMessageDeflate` 슬라이딩 윈도우 압축입니다.
+- 클라이언트에서 `ws.binaryType = 'arraybuffer'`를 지정하면 초기 제어 메시지(`map_init`, `welcome`, 1Hz `leaderboard`)는 텍스트 JSON으로, 20Hz 상태(`0x81`)와 `pong`(`0x8F`)은 바이너리 `ArrayBuffer`로 수신됩니다(브라우저가 `perMessageDeflate` 압축 해제를 자동 수행).
+- 디버깅 시 평문 JSON이 필요하면 `?encoding=json` 쿼리를 붙입니다. C2S 송신은 어느 모드에서나 바이너리와 JSON(`type: "input" | "action" | "ping"`)을 모두 수락합니다.
 
 ### 실측 패킷 크기 비교 (플레이어 10명 · 몬스터 25마리 기준)
 
@@ -636,7 +638,7 @@ Base URL: `http://34.158.215.133:8080/api`
 | 스킬 습득·강화 | `0x0B` (7B) | `{ "type": "action", "seq": N, "action": "learn_skill", "slot": "q" \| "r", "skillId": "crimson_tempest" }` | 슬롯별 3종 후보 중 1종 선택 및 최대 레벨 10까지 강화. |
 | 스킬 발동 | `0x06` (9B) | `{ "type": "action", "seq": N, "action": "skill", "slot": "q" \| "r", "aim": [dx, dy] }` | 습득한 `Q` 또는 `R` 액티브 스킬 시전. |
 | 능력치 투자 | `0x09` (6B) | `{ "type": "action", "seq": N, "action": "allocate_stat", "stat": "str" \| "vit" \| "agi" }` | 레벨업으로 얻은 `statPoints` 1점 소비. |
-| 아이템 줍기 | `0x07` (5B) | `{ "type": "action", "seq": N, "action": "pickup", "itemId": "optional" }` | 근처 바닥 아이템 획득(`instant_heart`는 접근 시 자동 흡수). |
+| 아이템 줍기 | `0x07` (5B) / `0x0C` | `{ "type": "action", "seq": N, "action": "pickup", "itemId": "optional" }` | 근처 바닥 아이템 획득(`itemId` 지정 시 `0x0C` `subOp=3`, `instant_heart`는 접근 시 자동 흡수). |
 | 소비 아이템 사용 | `0x08` (6B) / `0x0C` | `{ "type": "action", "seq": N, "action": "use_item", "slot": 0 }` 또는 `{ ..., "itemId": "item_xxxx" }` | 물약, 비약, 고대 비전서, 불사조의 깃털 사용. |
 | 장비 장착 | `0x0C` (7+NB) | `{ "type": "action", "seq": N, "action": "equip", "itemId": "item_xxxx" }` | 가방의 무기·방패·방어구 장착. |
 | 아이템 버리기 | `0x0C` (7+NB) | `{ "type": "action", "seq": N, "action": "drop_item", "itemId": "item_xxxx" }` | 가방의 아이템을 현재 발밑에 버림. |

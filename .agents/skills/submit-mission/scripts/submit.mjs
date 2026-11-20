@@ -6,10 +6,9 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, '../../../..');
-const IDENTITY_FILE = path.join(REPO_ROOT, '.bbl-identity.json');
 const DEFAULT_SERVER = process.env.BBL_SERVER_URL || 'http://34.158.215.133:8080';
 
-function parseArgs(argv) {
+export function parseArgs(argv) {
   const args = { mission: 'mission-1', style: 'custom-canvas', note: '', dir: '' };
   for (let i = 2; i < argv.length; i++) {
     const k = argv[i];
@@ -23,9 +22,9 @@ function parseArgs(argv) {
   return args;
 }
 
-function detectClientDir(explicitDir) {
+export function detectClientDir(explicitDir, repoRoot = REPO_ROOT) {
   if (explicitDir) {
-    const abs = path.resolve(REPO_ROOT, explicitDir);
+    const abs = path.resolve(repoRoot, explicitDir);
     if (!fs.existsSync(abs)) {
       throw new Error(`지정한 클라이언트 폴더를 찾을 수 없습니다: ${explicitDir}`);
     }
@@ -33,14 +32,14 @@ function detectClientDir(explicitDir) {
   }
   const candidates = ['client', 'my-client', 'app', 'web', 'src'];
   for (const name of candidates) {
-    const full = path.join(REPO_ROOT, name);
+    const full = path.join(repoRoot, name);
     if (fs.existsSync(full) && fs.statSync(full).isDirectory()) return full;
   }
-  if (fs.existsSync(path.join(REPO_ROOT, 'index.html'))) return REPO_ROOT;
+  if (fs.existsSync(path.join(repoRoot, 'index.html'))) return repoRoot;
   return null;
 }
 
-function collectJsFiles(dir, out = []) {
+export function collectJsFiles(dir, out = []) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     if (entry.name === 'node_modules' || entry.name === 'dist' || entry.name.startsWith('.')) continue;
     const full = path.join(dir, entry.name);
@@ -50,16 +49,16 @@ function collectJsFiles(dir, out = []) {
   return out;
 }
 
-function runStep(label, cmd, cwd) {
+function defaultRunStep(label, cmd, cwd) {
   console.log(`\n[RUN] ${label}...`);
   execSync(cmd, { cwd, stdio: 'inherit' });
   console.log(`[OK]  ${label}`);
 }
 
-async function ensureIdentity(serverBase) {
-  if (fs.existsSync(IDENTITY_FILE)) {
+export async function ensureIdentity(serverBase, identityFile = path.join(REPO_ROOT, '.bbl-identity.json')) {
+  if (fs.existsSync(identityFile)) {
     try {
-      const saved = JSON.parse(fs.readFileSync(IDENTITY_FILE, 'utf-8'));
+      const saved = JSON.parse(fs.readFileSync(identityFile, 'utf-8'));
       if (saved.token && saved.codename) return saved;
     } catch {
       // recreate below
@@ -70,18 +69,19 @@ async function ensureIdentity(serverBase) {
     throw new Error(`고유 코드네임 등록 실패 (HTTP ${res.status})`);
   }
   const identity = await res.json();
-  fs.writeFileSync(IDENTITY_FILE, JSON.stringify(identity, null, 2), 'utf-8');
+  fs.writeFileSync(identityFile, JSON.stringify(identity, null, 2), 'utf-8');
   return identity;
 }
 
-async function main() {
-  const args = parseArgs(process.argv);
+export async function runSubmit(argv = process.argv, { repoRoot = REPO_ROOT, runStep = defaultRunStep, log = console.log } = {}) {
+  const args = parseArgs(argv);
   const serverBase = (args.server || DEFAULT_SERVER).replace(/\/+$/, '');
+  const identityFile = path.join(repoRoot, '.bbl-identity.json');
   const checksPassed = [];
 
-  const clientDir = detectClientDir(args.dir);
+  const clientDir = detectClientDir(args.dir, repoRoot);
   if (clientDir) {
-    console.log(`[INFO] Client directory: ${path.relative(REPO_ROOT, clientDir) || '.'}`);
+    log(`[INFO] Client directory: ${path.relative(repoRoot, clientDir) || '.'}`);
     const pkgPath = path.join(clientDir, 'package.json');
     if (fs.existsSync(pkgPath)) {
       const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
@@ -99,31 +99,28 @@ async function main() {
     } else {
       const jsFiles = collectJsFiles(clientDir);
       if (jsFiles.length > 0) {
-        console.log(`\n[RUN] JavaScript 문법 검사 (${jsFiles.length}개 파일)...`);
+        log(`\n[RUN] JavaScript 문법 검사 (${jsFiles.length}개 파일)...`);
         for (const f of jsFiles) {
-          execSync(`node --check "${f}"`, { stdio: 'inherit' });
+          runStep(`node --check ${path.basename(f)}`, `node --check "${f}"`, clientDir);
         }
-        console.log('[OK]  JavaScript 문법 검사');
+        log('[OK]  JavaScript 문법 검사');
         checksPassed.push('client-syntax');
       }
     }
   }
 
-  // Verify live server health
-  console.log(`\n[CHECK] Live server health (${serverBase}/api/health)...`);
+  log(`\n[CHECK] Live server health (${serverBase}/api/health)...`);
   const healthRes = await fetch(`${serverBase}/api/health`);
   if (!healthRes.ok) {
     throw new Error(`서버 응답 오류: HTTP ${healthRes.status}`);
   }
   const health = await healthRes.json();
-  console.log(`[OK]    Server healthy (online players: ${health.onlinePlayers})`);
+  log(`[OK]    Server healthy (online players: ${health.onlinePlayers})`);
   checksPassed.push('server-health');
 
-  // Ensure unique player identity
-  const identity = await ensureIdentity(serverBase);
+  const identity = await ensureIdentity(serverBase, identityFile);
 
-  // Submit mission result
-  console.log(`\n[SUBMIT] Uploading verification for [${args.mission}]...`);
+  log(`\n[SUBMIT] Uploading verification for [${args.mission}]...`);
   const subRes = await fetch(`${serverBase}/api/submit`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -141,16 +138,20 @@ async function main() {
     throw new Error(`제출 실패: ${data.error || subRes.status}`);
   }
 
-  console.log('\n----------------------------------------');
-  console.log(`MISSION  : ${data.submission.missionId.toUpperCase()}`);
-  console.log(`RANK     : #${data.rank}${data.duplicate ? ' (existing record kept)' : ''}`);
-  console.log(`CODENAME : ${data.submission.codename}`);
-  console.log(`VERIFY   : #${data.submission.verifyCode}`);
-  console.log(`BOARD    : ${serverBase}`);
-  console.log('----------------------------------------\n');
+  log('\n----------------------------------------');
+  log(`MISSION  : ${data.submission.missionId.toUpperCase()}`);
+  log(`RANK     : #${data.rank}${data.duplicate ? ' (existing record kept)' : ''}`);
+  log(`CODENAME : ${data.submission.codename}`);
+  log(`VERIFY   : #${data.submission.verifyCode}`);
+  log(`BOARD    : ${serverBase}`);
+  log('----------------------------------------\n');
+  return data;
 }
 
-main().catch((err) => {
-  console.error(`\n[ERROR] Submission failed: ${err.message}`);
-  process.exit(1);
-});
+const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (isMain) {
+  runSubmit().catch((err) => {
+    console.error(`\n[ERROR] Submission failed: ${err.message}`);
+    process.exit(1);
+  });
+}
