@@ -80,3 +80,12 @@ node .agents/skills/submit-client/scripts/submit-client.mjs \
 - [ ] 클라이언트 코드가 `?token=` URL 파라미터와 `localStorage`의 `bbl_player_identity_v1`을 연동해 같은 `codename`을 유지하는지 확인하기
 - [ ] 번들러 출력 경로가 상대 경로(`./`)로 되어 있고, `package.json`의 `test` 스크립트가 Node 환경에서 실패하지 않는지 확인하기(브라우저 전용 테스트는 `--skip-checks` 사용)
 - [ ] `.bbl-identity.json` 파일이 Git에 커밋되지 않도록 `.gitignore`에 추가되어 있는지 확인하기
+
+## 제출 완료 후 사용자 안내
+
+제출이 성공하면 참가자가 본인 작품을 증명하고 브라우저에서도 같은 캐릭터로 접속할 수 있도록 아래 항목을 응답에 포함해 안내합니다. (`.bbl-identity.json` 파일을 Git 원격 저장소에 커밋하는 것만 금지하며, 참가자 본인에게는 토큰을 그대로 알려줍니다.)
+
+- 제출된 작품 제목과 리비전(`REV.N`)
+- 제출자 이름(`codename`) 및 확인 코드(`#verifyCode`)
+- 플레이어 인증 토큰(`token`)과 로컬 저장 경로(`.bbl-identity.json`)
+- 브라우저 동일 계정 접속용 쿼리 예시(`?token=<TOKEN>`)

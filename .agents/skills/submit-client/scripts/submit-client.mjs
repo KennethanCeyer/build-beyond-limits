@@ -440,11 +440,13 @@ export async function resolveGameIdentity({
   ];
 
   let resolvedToken = String(token || process.env.BBL_PLAYER_TOKEN || '').trim();
+  let matchedIdentityFile = '';
   if (!resolvedToken) {
     for (const fp of candidateFiles) {
       const saved = tryReadJson(fp);
       if (saved?.token) {
         resolvedToken = String(saved.token).trim();
+        matchedIdentityFile = fp;
         break;
       }
     }
@@ -468,7 +470,7 @@ export async function resolveGameIdentity({
       verifyCode: verified.verifyCode,
       preferredSkin: verified.preferredSkin || 'knight_m',
     };
-    const savePath = path.resolve(cwd, '.bbl-identity.json');
+    const savePath = matchedIdentityFile || path.resolve(clientDir, '.bbl-identity.json');
     fs.writeFileSync(savePath, JSON.stringify(identity, null, 2), { mode: 0o600 });
     return { identity, newlyRegistered: false, identityFile: savePath };
   }
@@ -489,7 +491,7 @@ export async function resolveGameIdentity({
     verifyCode: reg.verifyCode,
     preferredSkin: reg.preferredSkin || 'knight_m',
   };
-  const savePath = path.resolve(cwd, '.bbl-identity.json');
+  const savePath = path.resolve(clientDir, '.bbl-identity.json');
   fs.writeFileSync(savePath, JSON.stringify(identity, null, 2), { mode: 0o600 });
   return { identity, newlyRegistered: true, identityFile: savePath };
 }
@@ -854,14 +856,15 @@ if (isMainModule(import.meta.url)) {
       console.log(`\n[OK] 클라이언트 아카이브 ${modeLabel}!`);
       console.log(`  - 제목       : ${result.entry.title}`);
       console.log(`  - 제출자     : ${result.entry.codename} (#${result.entry.verifyCode})`);
+      console.log(`  - 인증 토큰  : ${result.identity.token}`);
+      console.log(`  - 인증 파일  : ${result.identityFile}`);
       console.log(`  - 리비전     : REV.${result.entry.revision} (파일 ${result.entry.fileCount}개)`);
       console.log(`  - 프리뷰 썸네일: ${result.thumbnailCaptured ? '캡처 포함됨' : '서버 기본 썸네일 사용'}`);
       console.log(`  - 시연 안내  : 아카이브 웹 화면은 발표자(호스트) 전용이며, 발표자 화면에서 바로 플레이됩니다.`);
-      if (result.newlyRegistered) {
-        console.log(`\n[인증 동기화 안내]`);
-        console.log(`  신규 발급된 게임 인증 정보가 ${result.identityFile} 에 저장되었습니다.`);
-        console.log(`  브라우저에서도 동일한 이름(${result.identity.codename})으로 플레이하려면 URL 뒤에 ?token=${result.identity.token} 을 붙여 접속하세요.`);
-      }
+      console.log(`\n[본인 확인 및 브라우저 접속 안내]`);
+      console.log(`  본인 확인 시 제출자 이름(${result.identity.codename}), 확인 코드(#${result.identity.verifyCode}), 인증 토큰을 사용하세요.`);
+      console.log(`  브라우저에서 같은 캐릭터로 접속하려면 클라이언트 URL 뒤에 ?token=${result.identity.token} 을 붙여 여세요.`);
+      console.log(`  에이전트는 위 제출자 이름, 확인 코드, 인증 토큰을 사용자에게 그대로 전달하세요. (.bbl-identity.json 파일의 Git 커밋만 금지)`);
     } catch (err) {
       console.error(`\n[ERROR] ${err.message}`);
       process.exit(1);
