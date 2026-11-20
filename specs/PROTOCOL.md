@@ -255,7 +255,7 @@ Base URL 접두 경로: `http://34.158.215.133:8080/api/*` *(단독 `GET /api` �
 | `SKINS` | `0=knight_m`, `1=knight_f`, `2=wizzard_m`, `3=wizzard_f`, `4=elf_m`, `5=elf_f`, `6=dwarf_m`, `7=lizard_m` |
 | `WEAPON_CLASSES` | `0=melee`, `1=bow`, `2=staff` |
 | `RARITIES` | `0=null`, `1=common(일반)`, `2=rare(희귀)`, `3=unique(유니크)`, `4=legendary(전설)` |
-| `CLASSES` | `0=knight`, `1=ranger`, `2=mage`, `3=berserker` |
+| `CLASSES` | `0=knight`, `1=ranger`, `2=mage`, `3=berserker` (`Private me` 직업 미선택 시 `255=null`) |
 | `SKILLS` | `0=null`, `1=crimson_tempest`, `2=frost_nova`, `3=phantom_lunge`, `4=abyssal_lance`, `5=solar_judgment`, `6=soul_reaver` |
 | `ARCHETYPES` | `0=skirmisher`, `1=bruiser`, `2=ranged`, `3=elite`, `4=boss` |
 | `AI_STATES` | `0=patrol`, `1=combat`, `2=windup`, `3=recovery`, `4=leash` |
