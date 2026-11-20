@@ -657,7 +657,169 @@ export async function captureHeadlessThumbnail(bundleRoot, { token = '', browser
     ? `http://127.0.0.1:${port}/?token=${encodeURIComponent(token)}`
     : `http://127.0.0.1:${port}/`;
 
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
   try {
+    if (typeof globalThis.WebSocket === 'function') {
+      let child = null;
+      let cdpWs = null;
+      try {
+        child = spawn(
+          browserBin,
+          [
+            '--headless=new',
+            '--incognito',
+            `--user-data-dir=${tmpProfile}`,
+            '--no-first-run',
+            '--disable-extensions',
+            '--disable-sync',
+            '--use-gl=angle',
+            '--use-angle=swiftshader',
+            '--enable-unsafe-swiftshader',
+            '--ignore-gpu-blocklist',
+            '--hide-scrollbars',
+            '--mute-audio',
+            '--window-size=800,500',
+            '--remote-debugging-port=0',
+            'about:blank',
+          ],
+          { stdio: ['ignore', 'ignore', 'pipe'] }
+        );
+
+        const browserWsUrl = await new Promise((resolve, reject) => {
+          let stderrBuf = '';
+          const t = setTimeout(() => reject(new Error('CDP startup timeout')), 6000);
+          child.stderr.on('data', (chunk) => {
+            stderrBuf += chunk.toString('utf-8');
+            const m = stderrBuf.match(/DevTools listening on (ws:\/\/[^\s]+)/);
+            if (m) {
+              clearTimeout(t);
+              resolve(m[1]);
+            }
+          });
+          child.once('error', (err) => {
+            clearTimeout(t);
+            reject(err);
+          });
+          child.once('exit', (code) => {
+            clearTimeout(t);
+            reject(new Error(`Chrome exited early (${code})`));
+          });
+        });
+
+        const debugOrigin = new URL(browserWsUrl).origin.replace(/^ws:/, 'http:');
+        let pageWsUrl = '';
+        for (let attempt = 0; attempt < 15; attempt++) {
+          const listRes = await fetch(`${debugOrigin}/json/list`).catch(() => null);
+          if (listRes && listRes.ok) {
+            const targets = await listRes.json();
+            const pageTarget = targets.find((t) => t.type === 'page' && t.webSocketDebuggerUrl);
+            if (pageTarget) {
+              pageWsUrl = pageTarget.webSocketDebuggerUrl;
+              break;
+            }
+          }
+          await sleep(100);
+        }
+        if (!pageWsUrl) throw new Error('No CDP page target');
+
+        cdpWs = new globalThis.WebSocket(pageWsUrl);
+        await new Promise((resolve, reject) => {
+          const t = setTimeout(() => reject(new Error('CDP WS open timeout')), 4000);
+          cdpWs.addEventListener('open', () => {
+            clearTimeout(t);
+            resolve();
+          }, { once: true });
+          cdpWs.addEventListener('error', (e) => {
+            clearTimeout(t);
+            reject(e);
+          }, { once: true });
+        });
+
+        let msgId = 0;
+        const pending = new Map();
+        cdpWs.addEventListener('message', (ev) => {
+          try {
+            const msg = JSON.parse(typeof ev.data === 'string' ? ev.data : Buffer.from(ev.data).toString('utf-8'));
+            if (msg.id && pending.has(msg.id)) {
+              const { resolve, reject } = pending.get(msg.id);
+              pending.delete(msg.id);
+              if (msg.error) reject(new Error(msg.error.message || 'CDP error'));
+              else resolve(msg.result);
+            }
+          } catch {}
+        });
+        const sendCdp = (method, params = {}) =>
+          new Promise((resolve, reject) => {
+            const id = ++msgId;
+            const t = setTimeout(() => {
+              pending.delete(id);
+              reject(new Error(`CDP timeout: ${method}`));
+            }, 5000);
+            pending.set(id, {
+              resolve: (val) => {
+                clearTimeout(t);
+                resolve(val);
+              },
+              reject: (err) => {
+                clearTimeout(t);
+                reject(err);
+              },
+            });
+            cdpWs.send(JSON.stringify({ id, method, params }));
+          });
+
+        await sendCdp('Page.enable');
+        await sendCdp('Runtime.enable');
+        await sendCdp('Emulation.setDeviceMetricsOverride', {
+          width: 800,
+          height: 500,
+          deviceScaleFactor: 1,
+          mobile: false,
+        });
+        await sendCdp('Page.navigate', { url: previewUrl });
+
+        // Wait real wall-clock time so REST /api/auth/verify + live WebSocket map_init/0x81 state + tileset images settle
+        await sleep(2500);
+        const deadline = Date.now() + 4500;
+        while (Date.now() < deadline) {
+          const check = await sendCdp('Runtime.evaluate', {
+            expression: `(() => {
+              if (document.readyState !== 'complete') return false;
+              const imgs = Array.from(document.images || []);
+              if (imgs.some((img) => img.src && !img.complete)) return false;
+              const text = (document.body && document.body.innerText) ? document.body.innerText : '';
+              const stillConnecting = /\\b(connecting|authenticating|reconnecting)\\b|연결\\s*중|접속\\s*중|인증\\s*중|동기화\\s*중/i.test(text);
+              return !stillConnecting;
+            })()`,
+            returnByValue: true,
+          }).catch(() => null);
+          if (check?.result?.value === true) break;
+          await sleep(300);
+        }
+        await sleep(400);
+
+        const shot = await sendCdp('Page.captureScreenshot', { format: 'png' });
+        if (shot?.data) {
+          return `data:image/png;base64,${shot.data}`;
+        }
+      } catch {
+        // Fall back to CLI screenshot below if CDP fails
+      } finally {
+        try { cdpWs?.close(); } catch {}
+        if (child && child.exitCode === null) {
+          await new Promise((resolve) => {
+            const t = setTimeout(resolve, 600);
+            child.once('exit', () => {
+              clearTimeout(t);
+              resolve();
+            });
+            try { child.kill('SIGKILL'); } catch { resolve(); }
+          });
+        }
+      }
+    }
+
     await new Promise((resolve) => {
       const child = spawn(
         browserBin,
@@ -668,11 +830,12 @@ export async function captureHeadlessThumbnail(bundleRoot, { token = '', browser
           '--no-first-run',
           '--disable-extensions',
           '--disable-sync',
-          '--disable-gpu',
+          '--use-gl=angle',
+          '--use-angle=swiftshader',
+          '--enable-unsafe-swiftshader',
           '--hide-scrollbars',
           '--mute-audio',
           '--window-size=800,500',
-          '--virtual-time-budget=2200',
           `--screenshot=${tmpPng}`,
           previewUrl,
         ],
@@ -698,8 +861,8 @@ export async function captureHeadlessThumbnail(bundleRoot, { token = '', browser
     }
     return null;
   } finally {
-    fs.rmSync(tmpPng, { force: true });
-    fs.rmSync(tmpProfile, { recursive: true, force: true });
+    try { fs.rmSync(tmpPng, { force: true }); } catch {}
+    try { fs.rmSync(tmpProfile, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }); } catch {}
     await new Promise((resolve) => localSrv.close(() => resolve()));
   }
 }
