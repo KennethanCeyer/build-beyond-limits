@@ -12,7 +12,7 @@
 
 ## 실습 개요
 
-이 리포지토리에는 명세서(`specs/`), 에이전트 스킬(`.agents/skills/`), 로컬 MCP 서버(`mcp-server/`), 예제 에셋(`assets/tileset/`)만 들어 있으며 클라이언트와 서버 소스코드는 포함되어 있지 않습니다. 참가자는 원하는 기술 스택으로 클라이언트를 작성해 라이브 서버에 접속합니다.
+이 리포지토리에는 명세서(`specs/`), 상시 에이전트 규칙(`AGENTS.md`), 에이전트 스킬(`.agents/skills/`), 로컬 MCP 서버(`mcp-server/`), 예제 에셋(`assets/tileset/`)만 들어 있으며 클라이언트와 서버 소스코드는 포함되어 있지 않습니다. 참가자는 원하는 기술 스택으로 클라이언트를 작성해 라이브 서버에 접속합니다.
 
 - 게임 서버: 참가자의 이동과 충돌, 공격과 방패 막기, 패링 판정, 몬스터 AI, 아이템 드롭을 계산해 초당 20회 브로드캐스트합니다.
 - 참가자 클라이언트: `POST /api/register`로 코드네임과 토큰을 발급받고 `/ws`로 `map_init`과 `state`를 받아 화면을 그리며, 키보드와 마우스 입력만 서버로 보냅니다.
@@ -198,6 +198,67 @@ agy --model gemini-4-neon-high
 
 </details>
 
+<details>
+<summary><code>AGENTS.md</code> 규칙과 샌드박스 하네스 제어</summary>
+
+### 1. 상시 로드 규칙 파일 (`AGENTS.md`)
+
+리포지토리 루트의 [`AGENTS.md`](./AGENTS.md)는 `build-beyond-limits` 디렉터리에서 `agy`나 Antigravity IDE를 실행할 때 매 턴 자동으로 컨텍스트에 포함되는 워크스페이스 규칙입니다. 자세한 동작 방식은 [Rules 문서](https://antigravity.google/docs/rules)에서 확인할 수 있습니다.
+
+- 작업 경로 보호: 새 클라이언트를 `./client/` 또는 `./my-client/` 아래에 작성하고 기존 `specs/`, `.agents/`, `mcp-server/`, `assets/` 파일을 보존합니다.
+- 서버 권위 데이터 준수: 맵 배열(`72x52`), 구역 좌표, 몬스터 AI, 직업 및 스킬 정보를 하드코딩하지 않고 `map_init`과 `20Hz state` 패킷 값만 사용하도록 제한합니다.
+- 구현 전 검증 순서: 코드 작성 전 `bbl-roguelike` MCP 도구로 서버 상태, 패킷 스키마, 스프라이트 좌표를 먼저 조회하게 합니다.
+- 인증, 렌더링, 보안 기준: `?token=` 쿼리 연동, `0x81 S2C_STATE` 바이트 길이 일치 검증, `img.crossOrigin = 'anonymous'` 및 정수 배율 렌더링, `submit-client` XSS 금지 패턴을 사전에 안내합니다.
+
+선호하는 프레임워크(예: React, PixiJS, Phaser)나 개인 코딩 컨벤션이 있다면 [`AGENTS.md`](./AGENTS.md) 하단에 추가하거나 대화창에서 `/learn` 명령으로 규칙을 저장해 매번 프롬프트에 반복 입력하지 않고 유지할 수 있습니다.
+
+### 2. 터미널 샌드박스(`--sandbox`)와 실행 모드(`--mode=auto`)
+
+파일 수정이나 테스트 실행마다 반복되는 승인 프롬프트를 줄이면서 로컬 환경을 보호하려면 OS 수준 터미널 샌드박스(macOS `sandbox-exec` Seatbelt, Linux 네임스페이스, Windows 프로세스 격리)와 실행 모드를 함께 사용합니다. 자세한 규격은 [터미널 샌드박스 문서](https://antigravity.google/docs/sandbox)에 나와 있습니다.
+
+```bash
+# 샌드박스 격리와 auto 모드를 켜고 시작
+agy --sandbox --mode=auto --model gemini-4-neon-high
+```
+
+| 실행 모드 | 전환 및 실행 방법 | 동작 방식 |
+| :--- | :--- | :--- |
+| `default` | 기본값 | 파일 쓰기와 터미널 명령 실행 전에 승인 요청 |
+| `accept-edits` | `--mode=accept-edits` 또는 대화창 `Shift+Tab` | 워크스페이스 파일 생성 및 수정만 자동 승인 |
+| `auto` | `--mode=auto` 또는 대화창 `Shift+Tab` | 샌드박스를 켜고 워크스페이스 내 편집과 테스트 실행을 자동 진행, `~/.ssh`와 `.env` 등 민감 경로 접근은 차단 |
+| `plan` | `--mode=plan` 또는 `/plan` | 코드를 수정하기 전에 구현 계획을 먼저 세우고 검토 요청 |
+
+매번 플래그를 입력하지 않으려면 `~/.gemini/antigravity-cli/settings.json`에 샌드박스와 허용, 차단 규칙을 저장해 둘 수 있습니다. 샌드박스 내부 명령은 기본적으로 외부 네트워크가 차단되므로, 외부 서버(`:8080`, `:8081`)와 직접 통신하는 `submit-client.mjs` 제출 스크립트는 아래처럼 `permissions.allow`에 넣어 두면 승인 대기 없이 실행됩니다.
+
+```json
+{
+  "agentMode": "auto",
+  "enableTerminalSandbox": true,
+  "toolPermission": "proceed-in-sandbox",
+  "permissions": {
+    "allow": [
+      "command(npm test)",
+      "command(npm run build)",
+      "command(node .agents/skills/submit-client/scripts/submit-client.mjs *)",
+      "write_file(client/)"
+    ],
+    "deny": [
+      "command(rm -rf *)",
+      "command(sudo *)"
+    ]
+  }
+}
+```
+
+### 3. 자율 검증 루프와 멀티 에이전트 명령
+
+- `/goal <완료 조건>`: 단위 테스트 통과나 빌드 성공처럼 명확한 검증 기준을 주면 완료가 확인될 때까지 조기 종료 없이 수정과 재검증을 반복합니다.
+  - 예: `/goal specs/PROTOCOL.md 기준으로 BBL-BIN v1 디코더를 작성하고 바이트 길이 일치 단위 테스트를 모두 통과시켜 줘`
+- `Orchestrator (Neon)`: `agy --model "Orchestrator (Neon)"`으로 시작하면 `Gemini 4 Neon`이 설계와 검토를 맡고 `Gemini 4 Hydrogen`이 파일 편집과 빌드를 빠르게 수행합니다.
+- `/swarm <작업>`: 네트워크, 2.5D 렌더러, HUD처럼 파일 단위로 나뉘는 작업을 여러 워커와 전담 검증 에이전트(`@verifier`)에게 병렬로 배정합니다.
+
+</details>
+
 ---
 
 ## 사전 준비와 인증
@@ -292,7 +353,9 @@ agy --model gemini-4-neon-high
 
 | 자주 쓰는 명령 | 설명 |
 | :--- | :--- |
-| `agy --model gemini-4-neon-high` | 권장 모델인 `Neon`으로 대화형 세션 시작. 종료는 `/exit`, 빈 입력창에서 `Ctrl+D`, 대기 중 `Ctrl+C` 2회 |
+| `agy --model gemini-4-neon-high` | 권장 모델인 `Neon`으로 대화형 세션 시작. 루트의 [`AGENTS.md`](./AGENTS.md) 규칙이 자동 로드되며 종료는 `/exit` 또는 `Ctrl+D` |
+| `agy --sandbox --mode=auto --model gemini-4-neon-high` | OS 샌드박스 안에서 파일 편집과 테스트 실행을 승인 대기 없이 자동으로 진행 |
+| `agy --model "Orchestrator (Neon)"` | `Neon`이 설계와 검토를 맡고 `Hydrogen`이 코드 수정과 빌드를 빠르게 분담 |
 | `agy --model gemini-4-hydrogen-medium` | 빠른 반복 수정용 권장 모델인 `Hydrogen`으로 대화형 세션 시작. 실행 중 변경은 대화창에서 `/model` 입력 |
 | `agy --model gemini-4-hydrogen-medium -p "요청 문구"` | 모델을 지정해 단발 프롬프트 실행 후 결과 출력 |
 | `agy models` | 현재 계정에서 사용 가능한 모델 목록 조회 |
