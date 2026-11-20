@@ -24,6 +24,7 @@ const ALLOWED_EXTS = new Set([
   '.html', '.htm', '.js', '.mjs', '.css', '.json',
   '.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.ico',
   '.woff', '.woff2', '.ttf', '.mp3', '.wav', '.ogg', '.wasm',
+  '.glb', '.gltf', '.bin', '.obj', '.mtl', '.ktx2', '.hdr',
 ]);
 
 const IGNORED_DIRS = new Set([
@@ -57,6 +58,13 @@ const MIME_TYPES = {
   '.wav': 'audio/wav',
   '.ogg': 'audio/ogg',
   '.wasm': 'application/wasm',
+  '.glb': 'model/gltf-binary',
+  '.gltf': 'model/gltf+json',
+  '.bin': 'application/octet-stream',
+  '.obj': 'text/plain; charset=utf-8',
+  '.mtl': 'text/plain; charset=utf-8',
+  '.ktx2': 'image/ktx2',
+  '.hdr': 'application/octet-stream',
 };
 
 const TEXT_SCAN_EXTS = new Set(['.html', '.htm', '.js', '.mjs', '.css', '.svg']);
