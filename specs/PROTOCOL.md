@@ -42,12 +42,12 @@ sequenceDiagram
 ```
 
 ### 구현 순서 체크리스트
-1. **계정 등록 (`POST /api/register`)**: 최초 1회 호출해 고유 코드네임, 비밀 인증 `token`, 6자리 검증 코드(`verifyCode`)를 발급받아 `localStorage`에 저장하기
+1. **계정 등록 및 토큰 동기화 (`POST /api/register`, `?token=`)**: URL 쿼리 `?token=<TOKEN>`이 있으면 해당 토큰을 우선 채택하고, 없으면 `localStorage`(`bbl_player_identity_v1`)를 확인한 뒤 최초 1회 `POST /api/register`를 호출해 고유 코드네임, 비밀 인증 `token`, 6자리 검증 코드(`verifyCode`)를 저장하기 (`submit-client` 갤러리 제출 시 브라우저와 동일한 `codename` 보장)
 2. **WebSocket 연결**: `ws://<HOST>:8080/ws?token=<token>`에 `ws.binaryType = 'arraybuffer'`로 연결하기 (기본값은 바이너리 `BBL-BIN v1` + `perMessageDeflate` 압축이며, 디버깅할 때만 `&encoding=json` 사용)
-3. **`map_init` 처리**:
-   - `map.width`(72), `map.height`(52), `map.tiles[y][x]`, `map.zones[]`, `map.bossArena`, `map.runePads[]`, `map.gateTiles[]`, `map.dartShooters[]` 저장하기
-   - `httpBase + map_init.tileset.sheetUrl`(`/assets/tileset/dungeon_autotile_16x16.png?v=2.4`)로 이미지 불러오기(`img.crossOrigin = 'anonymous'`)
-   - `tileset.sprites[key]`의 `{ x, y, w, h }`로 타일·캐릭터·몬스터·무기·방패·하트·물약 그리기
+3. **`map_init` 처리 (로컬 하드코딩 금지)**:
+   - 맵 타일·구역 좌표·몬스터 AI·직업 및 스킬 카탈로그를 클라이언트에 하드코딩하지 않고 `map_init`의 `map.width`(72), `map.height`(52), `map.tiles[y][x]`, `map.zones[]`, `map.bossArena`, `map.runePads[]`, `map.gateTiles[]`, `map.dartShooters[]` 및 `rules`를 그대로 저장하기
+   - `httpBase + map_init.tileset.sheetUrl`(`/assets/tileset/dungeon_autotile_16x16.png?v=2.5`)로 이미지 불러오기(`img.crossOrigin = 'anonymous'`)
+   - `tileset.sprites[key]`의 `{ x, y, w, h }`로 타일·캐릭터·몬스터·무기·갑옷·방패·하트·물약 그리기
 4. **`welcome` 처리**: `playerId`(`p_xxxxxxxxxxxx` 공개 식별자, `token`과 분리됨), `codename`, `verifyCode`, `skin`을 화면에 연결하고, `token`은 재접속용 비밀 키로만 로컬에 보관하기
 5. **직업 선택 (`select_class`)**: `state.me.alive && !state.me.classChosen`일 때 4종 직업(`knight`, `ranger`, `mage`, `berserker`) 선택 창을 띄우고 `0x0A C2S_SELECT_CLASS`(또는 `{ type: "action", seq, action: "select_class", classId }`) 전송하기
 6. **`state` 처리 (20Hz)**:
@@ -74,7 +74,7 @@ sequenceDiagram
 
 ## REST API 명세
 
-Base URL: `http://34.158.215.133:8080/api`
+Base URL 접두 경로: `http://34.158.215.133:8080/api/*` *(단독 `GET /api` 요청은 `404`를 반환하므로 아래 하위 엔드포인트로 호출)*
 
 ### `GET /api/health`
 ```json
@@ -85,6 +85,7 @@ Base URL: `http://34.158.215.133:8080/api`
   "onlinePlayers": 14,
   "bossAlive": true,
   "bossTier": 1,
+  "bossRaidCount": 2,
   "pvpEnabled": false
 }
 ```
@@ -103,20 +104,37 @@ Base URL: `http://34.158.215.133:8080/api`
 }
 ```
 
+### `POST /api/auth/verify` (또는 `GET /api/auth/verify?token=...`)
+`POST /api/register`로 발급된 `token`의 유효성을 검증하고 공식 `codename`과 `verifyCode`를 반환합니다(미등록 토큰은 `401`).
+```json
+{
+  "valid": true,
+  "codename": "Crimson-Blade-42",
+  "verifyCode": "A7F9K2",
+  "preferredSkin": "knight_m",
+  "registeredAt": "2026-11-19T03:00:00.000Z"
+}
+```
+
 ### `GET /api/map`
 `map_init.map`과 동일한 구조(`width`, `height`, `tiles`, `zones`, `bossArena`, `runePads`, `gateTiles`, `dartShooters`)를 반환합니다. `Accept-Encoding: gzip` 요청 시 사전 압축된 `gzip` 응답을 전달합니다.
 
 ### `GET /api/tileset` / `GET /api/leaderboard`
 통합 512×640 타일셋 매니페스트(`/api/tileset` 역시 사전 압축 `gzip` 지원)와 실시간 리더보드를 조회합니다.
 
-### `POST /api/submit`
+### 호스트 갤러리 제출 (`POST http://34.158.215.133:8081/api/gallery/submit`)
+참가자가 완성한 클라이언트 웹 번들과 썸네일을 1인 1항목 **Upsert** 방식으로 제출합니다(`.agents/skills/submit-client/scripts/submit-client.mjs` 사용).
+- 갤러리 서버는 제출받은 `token`을 게임 서버 `POST /api/auth/verify`로 검증하여 반환된 `codename`을 작성자 식별자로 고정합니다(임의 작성자명 지정 불가, 재제출 시 기존 항목 덮어쓰기 및 `revision` 증가).
 ```json
 {
-  "missionId": "mission-1",
   "token": "6d2e89d1-3d2a-4c9a-9e87-9f281a241b02",
-  "clientStyle": "pixel-autotile",
-  "checksPassed": ["client-test", "client-build", "server-health"],
-  "note": "초기 접속 및 커스텀 HUD 구현"
+  "title": "심연의 픽셀 로그라이크",
+  "description": "방향성 패링과 커스텀 미니맵 구현",
+  "thumbnailDataUrl": "data:image/png;base64,...",
+  "files": [
+    { "path": "index.html", "contentBase64": "..." },
+    { "path": "assets/index.js", "contentBase64": "..." }
+  ]
 }
 ```
 
@@ -141,7 +159,7 @@ Base URL: `http://34.158.215.133:8080/api`
 | 메시지 | 평문 JSON | 바이너리 (`BBL-BIN v1`) | 바이너리 + Deflate 압축 | 총 절감률 |
 | :--- | :---: | :---: | :---: | :---: |
 | 20Hz 월드 상태 (`state` + `me`) | `22,213 bytes` | `4,258 bytes` (`-80.8%`) | `2,658 bytes` (슬라이딩 윈도우 시 더 축소) | **88.0% 이상 절감 (8.4배 축소)** |
-| 이동 입력 (`input`) | `38 bytes` | `7 bytes` | `7 bytes` (`<256B` 임계값 미만, 압축 생략) | **81.6% 절감 (5.4배 축소)** |
+| 이동 입력 (`input`) | `38 bytes` | `7 bytes` | `7 bytes` (`<512B` 임계값 미만, 압축 생략) | **81.6% 절감 (5.4배 축소)** |
 | `ping` / `pong` | `15 / 38 bytes` | `5 / 9 bytes` | `5 / 9 bytes` | **75% 절감** |
 
 ### 양자화 및 문자열 풀 규칙
@@ -268,7 +286,7 @@ Base URL: `http://34.158.215.133:8080/api`
   - 기본 정보: `id`, `codename`, `verifyCode`, `u8 classIdx`, `className`, `u8 prefWpnClassIdx`, `prefWpnLabel`, `masteryDesc`, `u8 skinIdx`, `u32 ackSeq`
   - 좌표·전투 수치: `u16 x100`, `u16 y100`, `i8 dirX100`, `i8 dirY100`, `u8 hp`, `u8 maxHp`, `u16 atk`, `u16 def`, `u8 blockRed100`, `u16 moveSpeed100`, `u8 crit100`
   - 성장·상태: `u8 level`, `u32 xp`, `u32 xpToNext`, `u8 statPoints`, `u8 skillPoints`, `u8 str`, `u8 vit`, `u8 agi`, `u8 revivesLeft`, `u16 meFlags(bit0=classChosen, bit1=weaponMasteryActive, bit2=alive, bit3=hit, bit4=guarding, bit5=parrying, bit6=dashing, bit7=invulnerable, bit8=inSafeZone, bit9=hasLastRunSummary)`
-  - 타이머·재사용 대기시간: `u8 charging100`, `u16 invulnMs`, `u16 respawnInMs`, `u16 dashCdMs`, `u16 dashMaxCdMs`, `u16 atkCdMs` + (`bit9=1`일 때 `u8 reachedLevel`, `u16 mobKills`, `u16 bossKills`, `f64 endedAt`)
+  - 타이머·재사용 대기시간: `u8 charging100`, `u16 invulnMs`, `u16 respawnInMs`, `u16 dashCdMs`, `u16 dashMaxCdMs`, `u16 atkCdMs` + (`bit9=1`일 때 `u8 reachedLevel`, `u16 mobKills`, `u16 bossKills`, `f64 endedAt` Unix 밀리초 타임스탬프)
   - 스킬·장비·가방·전적: `2 × SkillSlot(u8 skillIdx, str8 name, u8 lv, u8 maxLv, u16 cdMs, u16 maxCdMs)`, `u8 eqMask(bit0=weapon, bit1=shield, bit2=armor) + ItemRecords`, `u8 invLen + ItemRecords`, `u8 buffLen + buffLen × (u8 typeIdx, u16 remMs)`, `u16 mobKills`, `u16 bossKills`, `u16 pvpKills`, `u32 bossDamage`, `u16 bossDps`, `str8 zone`
 
 ### Server -> Client: `map_init` (접속 직후 1회)
@@ -293,12 +311,12 @@ Base URL: `http://34.158.215.133:8080/api`
       { "x": 52, "y": 8 }, { "x": 52, "y": 9 }, { "x": 52, "y": 10 }, { "x": 52, "y": 11 }
     ],
     "dartShooters": [
-      { "x": 45.5, "y": 28.5, "vx": 8.5, "vy": 0, "intervalMs": 2200 }
+      { "x": 45.5, "y": 26.5, "vx": 6.2, "vy": 0, "intervalMs": 2600 }
     ]
   },
   "tileset": {
     "name": "0x72_DungeonAutotile_16x16",
-    "sheetUrl": "/assets/tileset/dungeon_autotile_16x16.png?v=2.4",
+    "sheetUrl": "/assets/tileset/dungeon_autotile_16x16.png?v=2.5",
     "sheetWidth": 512,
     "sheetHeight": 640,
     "tileSize": 16,
@@ -311,8 +329,11 @@ Base URL: `http://34.158.215.133:8080/api`
     "respawnMs": 3000,
     "bossRespawnMs": 180000,
     "pvpEnabled": false,
+    "playerBaseSpeed": 5.7,
+    "dashSpeed": 15.5,
     "heartSystem": { "baseMaxHalfHearts": 6, "unitsPerFullHeart": 2, "levelUpHealHalfHearts": 1, "vitPerHalfHeart": 3, "maxVitHalfHearts": 4 },
     "roguelikePermadeath": { "startingRevives": 1, "maxRevives": 3, "rareReviveItem": "phoenix_feather" },
+    "bossRaidScaling": { "radiusTiles": 16, "hpPerExtraRaider": 0.45, "maxHpMult": 3.25, "extraAtkHalfHeartsAt3": 1, "extraAtkHalfHeartsAt5": 2, "maxPatternHalfHearts": 8 },
     "classCatalog": {},
     "skillCatalog": {},
     "attackRange": 2.35,
@@ -580,6 +601,7 @@ Base URL: `http://34.158.215.133:8080/api`
     "alive": true,
     "bossUuid": "5b1f09a4-...",
     "tier": 1,
+    "raidCount": 1,
     "nextTier": 0,
     "name": "심연의 화신 말라코르",
     "killedBy": null,
@@ -601,10 +623,10 @@ Base URL: `http://34.158.215.133:8080/api`
     "onlineCount": 12,
     "totalRegistered": 20,
     "awards": {
-      "highestLevel": { "codename": "Crimson-Blade-42", "verifyCode": "A7F9K2", "level": 9, "mobKills": 48 },
+      "highestLevel": { "codename": "Crimson-Blade-42", "verifyCode": "A7F9K2", "level": 9, "xp": 120, "mobKills": 48 },
       "mostBossKills": { "codename": "Crimson-Blade-42", "verifyCode": "A7F9K2", "bossKills": 2, "bossDps": 185 },
       "mostPvp": null,
-      "fastestJoin": { "codename": "Crimson-Blade-42", "verifyCode": "A7F9K2", "joinedAt": "2026-11-19T03:00:00.000Z" },
+      "fastestJoin": { "codename": "Crimson-Blade-42", "verifyCode": "A7F9K2", "joinedAt": "2026-11-19T03:00:00.000Z", "joinedAtMs": 1795057200000 },
       "bossFirstKiller": null,
       "highestBossDps": null
     },
@@ -613,8 +635,7 @@ Base URL: `http://34.158.215.133:8080/api`
     "topPvp": [],
     "topBossDps": [],
     "fastestJoin": [],
-    "bossFirstKiller": null,
-    "missions": {}
+    "bossFirstKiller": null
   },
   "killFeed": [
     { "id": "b1ecd0", "text": "Crimson-Blade-42 entered the dungeon (#1)", "category": "join", "at": "2026-11-19T03:00:00.000Z" }
@@ -632,7 +653,7 @@ Base URL: `http://34.158.215.133:8080/api`
 | 직업 선택 | `0x0A` (6B) | `{ "type": "action", "seq": N, "action": "select_class", "classId": "knight" \| "ranger" \| "mage" \| "berserker" }` | 최초 접속 또는 탐험 초기화 후 `me.classChosen === false`일 때 전송합니다. 탐험당 1회만 허용됩니다. |
 | 탐험 다시하기 | `0x0D` (5B) | `{ "type": "action", "seq": N, "action": "restart_run" }` | 현재 탐험의 레벨·장비·스킬을 초기화하고 성소에서 직업 선택(`classChosen = false`) 상태로 새 탐험을 시작합니다(리더보드 최고 기록 유지). 실수 방지를 위해 확인 창을 띄운 뒤 전송하는 것을 권장합니다. |
 | 강공격 차지 시작 | `0x03` (5B) | `{ "type": "action", "seq": N, "action": "charge_start" }` | 공격 키를 길게 누르기 시작할 때 전송합니다. 공격 대기시간·대시 중에는 거부되며, 서버가 경과 시간을 계측합니다. |
-| 공격 발동 | `0x02` (9B) | `{ "type": "action", "seq": N, "action": "attack", "aim": [dx, dy] }` | 근접 참격 / 화살 / 폭발 마법구 발사. `charge_start` 후 약 `358ms`(화염 술사 `265ms`) 이상 지나면 강공격이 발동합니다(클라이언트가 임의로 보낸 `charge` 값은 무시). |
+| 공격 발동 | `0x02` (9B) | `{ "type": "action", "seq": N, "action": "attack", "aim": [dx, dy] }` | 근접 참격 / 화살 / 폭발 마법구 발사. `charge_start` 후 기본 약 `358ms`(심연 사냥꾼 `311ms`, 광전사 `325ms`, 화염 술사 `265ms`) 이상 지나면 강공격이 발동합니다(클라이언트가 임의로 보낸 `charge` 값은 무시). |
 | 방패 막기 · 패링 | `0x04` (6B) | `{ "type": "action", "seq": N, "action": "guard", "active": true \| false }` | 누를 때 `active: true`, 뗄 때 `active: false`. 전방 `120도` 내 근접·원거리 공격(속도 벡터 판정, 동일 미사일 반사) 또는 광역 장판 적중 직전 `0.32초`(수호기사 `0.42초`) 이내에 막기를 올리면 패링이 발동합니다(재장전 `750ms`). |
 | 대시 슬라이드 | `0x05` (8B) | `{ "type": "action", "seq": N, "action": "dash", "dir": [dx, dy] }` | 고속 슬라이드(`200ms`) + `280ms` 회피 무적(보스 `waves[]` 통과 필수). 대시 중 타 행동 잠금. |
 | 스킬 습득·강화 | `0x0B` (7B) | `{ "type": "action", "seq": N, "action": "learn_skill", "slot": "q" \| "r", "skillId": "crimson_tempest" }` | 슬롯별 3종 후보 중 1종 선택 및 최대 레벨 10까지 강화. |

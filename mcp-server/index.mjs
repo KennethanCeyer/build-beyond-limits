@@ -49,7 +49,7 @@ export const TOOLS = [
       properties: {
         category: {
           type: 'string',
-          enum: ['heroes', 'weapons', 'shields', 'monsters', 'walls', 'hearts', 'traps', 'puzzle', 'potions'],
+          enum: ['heroes', 'weapons', 'armors', 'shields', 'monsters', 'walls', 'hearts', 'traps', 'puzzle', 'potions'],
           description: 'Asset category to inspect',
         },
       },
@@ -115,6 +115,7 @@ export function filterSprites(sprites, category) {
   const matchers = {
     heroes: (k) => /^(knight_|wizzard_|elf_|dwarf_|lizard_)/.test(k),
     weapons: (k) => k.startsWith('weapon_'),
+    armors: (k) => k.startsWith('armor_'),
     shields: (k) => k.startsWith('shield_'),
     monsters: (k) =>
       /^(swampy|muddy|slug|tiny_zombie|imp|goblin|skelet|ice_zombie|wogol|pumpkin_dude|orc_|masked_orc|necromancer|chort|big_zombie|ogre|big_demon)/.test(

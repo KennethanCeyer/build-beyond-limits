@@ -1,12 +1,12 @@
 # Build Beyond Limits 예제 에셋 및 렌더링 명세
 
-`map_init`의 `72×52` 던전 지도와 리포지토리에 포함된 CC0 예제 시트(`assets/tileset/dungeon_autotile_16x16.png`) 기준 렌더링 규격입니다. 예제 에셋 대신 직접 준비한 타일셋, 벡터 도형, 와이어프레임, ASCII 아트 등을 사용해도 무방합니다.
+`map_init`의 `72×52` 던전 지도와 리포지토리에 포함된 CC0 예제 시트(`assets/tileset/dungeon_autotile_16x16.png`) 기준 렌더링 규격입니다. 예제 에셋 대신 직접 준비한 타일셋, 벡터 도형, 와이어프레임, ASCII 아트 등을 사용해도 무방합니다. 단, 맵 배열·구역 좌표·몬스터 위치와 동작은 로컬에 하드코딩하지 않고 반드시 서버가 보내는 `map_init`과 `20Hz state` 데이터만 사용해야 합니다.
 
 ---
 
 ## 통합 타일셋 아틀라스 구조 (`512×640`, 16×16 기준)
 
-- 다운로드 URL: `httpBase + map_init.tileset.sheetUrl` (`http://34.158.215.133:8080/assets/tileset/dungeon_autotile_16x16.png?v=2.4`)
+- 다운로드 URL: `httpBase + map_init.tileset.sheetUrl` (`http://34.158.215.133:8080/assets/tileset/dungeon_autotile_16x16.png?v=2.5`)
 - 스프라이트 좌표 `{ x, y, w, h }`: `map_init.tileset.sprites[spriteKey]` 및 `GET /api/tileset`에서 제공
 - 이미지 로드 시 `img.crossOrigin = 'anonymous'`를 지정하고, 캔버스에는 `ctx.imageSmoothingEnabled = false`를 적용합니다.
 - `img.onload` 완료 전에 `ctx.drawImage(atlasImg, ...)`를 호출하면 `TypeError`가 발생해 `ctx.save()`/`restore()` 스택이 깨질 수 있으므로, 호출 전 `atlasImg && atlasImg.complete && atlasImg.naturalWidth > 0`을 확인합니다.
@@ -16,7 +16,7 @@
 | `y: 0..511` | 바닥, 가시 함정, 룬 버튼, 석주, 영웅 8종, 몬스터 17종, 보스, 무기, 하트, 물약, 상자 | `floor_1..8`, `floor_spikes_anim_f0..3`, `button_blue_up/down`, `ui_heart_full/half/empty`, `column`, `knight_m_*`, `big_demon_*`, `weapon_*`, `flask_*` |
 | `x: 0..383, y: 512..639` | 2.5D 남향 고벽(`16×32`), 벽면 용암·치유 분수, 깃발 | `wh_single`, `wh_brick_l/m/r/alt`, `wh_lava_f0..2`, `wh_blue_f0..2`, `wh_banner_red/blue` |
 | `x: 384..495, y: 512..623` | 벽면 바닥 그림자 오버레이 | `floor_shadow_0..3` |
-| `x: 384..479, y: 624..639` | 방패 4종, 불사조의 깃털, 고대 비전서 (`16×16`) | `shield_wood`, `shield_iron`, `shield_knight`, `shield_heroic`, `item_phoenix_feather`, `item_skill_book` |
+| `x: 384..511, y: 608..639` | 방패 4종, 갑옷 4종, 불사조의 깃털, 고대 비전서 (`16×16`) | `shield_wood`, `shield_iron`, `shield_knight`, `shield_heroic`, `armor_leather`, `armor_steel`, `armor_dragonscale`, `armor_abyssal`, `item_phoenix_feather`, `item_skill_book` |
 
 ### 스프라이트 종류별 그리기 기준 좌표 (`drawImage`)
 
@@ -37,9 +37,9 @@
 | 사망 영웅 | `skull` | `16×16` | `(px - 8, py - 10)` | `!p.alive`일 때 |
 | 몬스터 / 보스 | `m.singleAnim ? "${base}_anim_f${f}" : "${base}_${moving?'run':'idle'}_anim_f${f}"` | `16×16`, `16×23`, `32×36` | `(px - Math.floor(sp.w/2), py - sp.h + 5)` | `singleAnim: true`: `swampy`, `slug`, `muddy`, `ice_zombie`, `necromancer`. 보스(`big_demon`)·정예(`ogre`, `big_zombie`)는 `32×36` |
 | 바닥 아이템 | `gi.item.spriteKey` | 가변 | `(ix - Math.floor(sp.w/2), iy - Math.floor(sp.h/2) + bob)` | `globalAlpha = gi.fadeAlpha ?? 1` 적용 |
-| 장착 무기 | `p.weaponSprite` | 가변 | 근접: 회전 스윙 / 활: 조준 방향 시위 당김 / 지팡이: 측면 세로 직립(`6×21`) | `p.weaponClass`로 모션 분기 |
+| 장착 무기 | `p.weaponSprite` | 가변 | 근접: 회전 스윙 / 활: 조준 방향 시위 당김 / 지팡이(원본 `8×30`): 측면 세로 직립(`6×21` 축소 표시) | `p.weaponClass`로 모션 분기 |
 | 장착 방패 | `p.shieldSprite` | `16×16` | 평소 보조 손, `p.guarding` 시 정면 배치 | `p.parrying` 시 청록·금색 패링 아크 표시 |
-| 체력 하트 | `ui_heart_full`, `ui_heart_half`, `ui_heart_empty` | `16×16` | HUD 및 캐릭터 머리 위 | 반칸(`1 HP`) 단위로 계산 |
+| 체력 하트 | `ui_heart_full`, `ui_heart_half`, `ui_heart_empty` | `13×12` | HUD 및 캐릭터 머리 위 | 반칸(`1 HP`) 단위로 계산 (`sp.w`, `sp.h` 그대로 사용) |
 
 ---
 
@@ -62,7 +62,7 @@
 | `12` | `LAVA_WALL` | X | X | 벽면 용암 분수 (`wh_brick_m` + `wh_lava_f0..2` + 붉은 광원) |
 | `13` | `HEAL_WALL` | X | X | 성소 벽면 치유 분수 (`wh_brick_m` + `wh_blue_f0..2` + 푸른 광원) |
 | `14` | `SEALED_GATE` | X (`gateOpen` 시 `6`으로 변경) | X | 봉인의 문 (`map.gateTiles`, `x=52, y=8..11` 세로 4칸). `!state.puzzle.gateOpen` 동안 각 `16×16` 타일에 황금 봉인 창살을 그리며, 퍼즐 완료 시 `gateOpen = true`로 열립니다. |
-| `15` | `RUNE_PAD` | O | X | 4룬 퍼즐 발판 (`map.runePads`, `state.puzzle.pads`): `floor_1` 위에 `button_blue_up/down`과 `pad.color`(`blue`, `red`, `green`, `gold`) 문양을 그리고, `state.puzzle.litRunes`에 포함되면 밝은 광원을 켭니다. |
+| `15` | `RUNE_PAD` | O | X | 4룬 퍼즐 발판 (`map.runePads`, `state.puzzle.pads`): `floor_1` 위에 `button_blue_up/down`과 `pad.id`(`blue`, `red`, `green`, `gold`)별 `pad.color`(`#58b4ff`, `#ff5c5c`, `#68d67a`, `#f0c869`) 문양을 그리고, `state.puzzle.litRunes`에 포함되면 밝은 광원을 켭니다. |
 
 - **벽면 독침 발사기 (`map.dartShooters[]`)**: 미궁 발사기 목록 `{ x, y, vx, vy, intervalMs }`이 `map_init.map` 및 `GET /api/map`에 포함됩니다. 독침 투사체(`kind: "dart"`)는 녹색(`#82d964`)으로 렌더링합니다.
 

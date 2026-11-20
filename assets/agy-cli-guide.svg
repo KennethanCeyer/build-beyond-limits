@@ -103,8 +103,8 @@
       @keyframes cur-track-s2 {
         0%, 12.1% { opacity: 0; transform: translateX(0px); }
         12.2%, 13.3% { opacity: 1; transform: translateX(0px); }
-        17.8%, 19.0% { opacity: 1; transform: translateX(79px); }
-        19.1%, 100% { opacity: 0; transform: translateX(79px); }
+        17.8%, 19.0% { opacity: 1; transform: translateX(298px); }
+        19.1%, 100% { opacity: 0; transform: translateX(298px); }
       }
       @keyframes show-s2-o1 { 0%, 19.3% { opacity: 0; } 19.4%, 99.5% { opacity: 1; } 100% { opacity: 0; } }
       @keyframes show-s2-o2 { 0%, 20.5% { opacity: 0; } 20.6%, 99.5% { opacity: 1; } 100% { opacity: 0; } }
@@ -208,7 +208,7 @@
   </g>
   <rect class="cur-s1" x="208" y="55" width="8" height="16" fill="#58a6ff"/>
   <g class="s1-out">
-    <text x="22" y="88" class="term out">agy 1.5.12</text>
+    <text x="22" y="88" class="term out">1.5.13</text>
   </g>
 
   <!-- Step 2: agy models -->
@@ -216,22 +216,23 @@
     <text x="22" y="120" class="term" xml:space="preserve"><tspan class="p-dir">~/build-beyond-limits</tspan> <tspan class="p-sym">$</tspan></text>
   </g>
   <g class="s2-cmd">
-    <text x="208" y="120" class="term" xml:space="preserve"><tspan class="cmd">agy</tspan> <tspan class="arg">models</tspan></text>
+    <text x="208" y="120" class="term" xml:space="preserve"><tspan class="cmd">agy</tspan> <tspan class="arg">models | grep -- -high | head -n 4</tspan></text>
   </g>
   <rect class="cur-s2" x="208" y="107" width="8" height="16" fill="#58a6ff"/>
   <g class="s2-o1">
-    <text x="22" y="140" class="term dim">Available models (* = default):</text>
+    <text x="22" y="140" class="term ok">gemini-4-neon-high</text>
+    <text x="242" y="140" class="term dim">Gemini 4 Neon (High)</text>
   </g>
   <g class="s2-o2">
-    <text x="22" y="160" class="term" xml:space="preserve"><tspan class="star">*</tspan> <tspan class="ok">gemini-4-carbon-high</tspan></text>
+    <text x="22" y="160" class="term str">gemini-4-carbon-high</text>
     <text x="242" y="160" class="term dim">Gemini 4 Carbon (High)</text>
   </g>
   <g class="s2-o3">
-    <text x="22" y="180" class="term" xml:space="preserve">  <tspan class="str">gemini-4-neon-high</tspan></text>
-    <text x="242" y="180" class="term dim">Gemini 4 Neon (High)</text>
+    <text x="22" y="180" class="term str">gemini-4-argon-high</text>
+    <text x="242" y="180" class="term dim">Gemini 4 Argon (High)</text>
   </g>
   <g class="s2-o4">
-    <text x="22" y="200" class="term" xml:space="preserve">  <tspan class="arg">gemini-4-hydrogen-high</tspan></text>
+    <text x="22" y="200" class="term arg">gemini-4-hydrogen-high</text>
     <text x="242" y="200" class="term dim">Gemini 4 Hydrogen (High)</text>
   </g>
 
@@ -248,7 +249,7 @@
   </g>
   <rect class="cur-s3b" x="208" y="239" width="8" height="16" fill="#58a6ff"/>
   <g class="s3-out">
-    <text x="22" y="272" class="term ok">✓ Added MCP server "bbl-roguelike" (stdio)</text>
+    <text x="22" y="272" class="term ok">Added MCP server "bbl-roguelike" (stdio)</text>
   </g>
 
   <!-- Step 3b: agy mcp list -->
@@ -261,15 +262,15 @@
   <rect class="cur-s4" x="208" y="291" width="8" height="16" fill="#58a6ff"/>
   <g class="s4-o1">
     <text x="22" y="324" class="term dim">NAME</text>
-    <text x="165" y="324" class="term dim">TRANSPORT</text>
-    <text x="275" y="324" class="term dim">COMMAND</text>
-    <text x="530" y="324" class="term dim">STATUS</text>
+    <text x="165" y="324" class="term dim">TYPE</text>
+    <text x="245" y="324" class="term dim">STATUS</text>
+    <text x="345" y="324" class="term dim">COMMAND/URL</text>
   </g>
   <g class="s4-o2">
     <text x="22" y="344" class="term str">bbl-roguelike</text>
     <text x="165" y="344" class="term out">stdio</text>
-    <text x="275" y="344" class="term out">node ./mcp-server/index.mjs</text>
-    <text x="530" y="344" class="term ok">● enabled</text>
+    <text x="245" y="344" class="term ok">enabled</text>
+    <text x="345" y="344" class="term out">node ./mcp-server/index.mjs</text>
   </g>
 
   <!-- Step 4: model prompt run -->
@@ -277,7 +278,7 @@
     <text x="22" y="378" class="term" xml:space="preserve"><tspan class="p-dir">~/build-beyond-limits</tspan> <tspan class="p-sym">$</tspan></text>
   </g>
   <g class="s5-cmd">
-    <text x="208" y="378" class="term" xml:space="preserve"><tspan class="cmd">agy</tspan> <tspan class="flag">--model</tspan> <tspan class="str">gemini-4-carbon-low</tspan> <tspan class="flag">-p</tspan> <tspan class="str">"한 줄로 인사해 줘"</tspan></text>
+    <text x="208" y="378" class="term" xml:space="preserve"><tspan class="cmd">agy</tspan> <tspan class="flag">--model</tspan> <tspan class="str">gemini-4-neon-low</tspan> <tspan class="flag">-p</tspan> <tspan class="str">"한 줄로 인사해 줘"</tspan></text>
   </g>
   <rect class="cur-s5" x="208" y="365" width="8" height="16" fill="#58a6ff"/>
 

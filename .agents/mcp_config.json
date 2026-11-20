@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "bbl-roguelike": {
+      "command": "node",
+      "args": ["./mcp-server/index.mjs"],
+      "env": {
+        "BBL_SERVER_URL": "http://34.158.215.133:8080"
+      }
+    }
+  }
+}
