@@ -79,6 +79,7 @@ Google Antigravity는 데스크톱 IDE, 에디터 확장, 터미널 클라이언
 - 지원 모델 및 요금제: [https://antigravity.google/docs/models](https://antigravity.google/docs/models)
 - CLI 레퍼런스: [https://antigravity.google/docs/cli/reference](https://antigravity.google/docs/cli/reference)
 - CLI 활용 가이드: [https://antigravity.google/docs/cli/best-practices](https://antigravity.google/docs/cli/best-practices)
+- Plan 모드 문서: [https://antigravity.google/docs/plan/](https://antigravity.google/docs/plan/)
 
 `agy`에서는 Gemini 4 모델군(`Neon`, `Carbon`, `Argon`, `Hydrogen`), 협업 모드인 `Orchestrator`, 그리고 `Gemini 3.8 Flash`, `Claude Opus/Sonnet 5.5`, `GPT-OSS 120B` 등을 선택할 수 있습니다. 현재 계정에서 쓸 수 있는 목록은 `agy models`로 확인합니다.
 
@@ -229,7 +230,7 @@ agy --sandbox --mode=auto --model gemini-4-neon-high
 | `default` | 기본값 | 파일 쓰기와 터미널 명령 실행 전에 승인 요청 |
 | `accept-edits` | `--mode=accept-edits` 또는 대화창 `Shift+Tab` | 워크스페이스 파일 생성 및 수정만 자동 승인 |
 | `auto` | `--mode=auto` 또는 대화창 `Shift+Tab` | 샌드박스를 켜고 워크스페이스 내 편집과 테스트 실행을 자동 진행, `~/.ssh`와 `.env` 등 민감 경로 접근은 차단 |
-| `plan` | `--mode=plan` 또는 `/plan` | 코드를 수정하기 전에 구현 계획을 먼저 세우고 검토 요청 |
+| `plan` | `--mode=plan` 또는 `/plan` | 코드를 수정하기 전에 구현 계획을 먼저 세우고 검토 요청 ([Plan 문서](https://antigravity.google/docs/plan/)) |
 
 매번 플래그를 입력하지 않으려면 `~/.gemini/antigravity-cli/settings.json`에 샌드박스와 허용, 차단 규칙을 저장해 둘 수 있습니다. 샌드박스 내부 명령은 기본적으로 외부 네트워크가 차단되므로, 외부 서버(`:8080`, `:8081`)와 직접 통신하는 `submit-client.mjs` 제출 스크립트는 아래처럼 `permissions.allow`에 넣어 두면 승인 대기 없이 실행됩니다.
 
@@ -259,6 +260,169 @@ agy --sandbox --mode=auto --model gemini-4-neon-high
   - 예: `/goal specs/PROTOCOL.md 기준으로 BBL-BIN v1 디코더를 작성하고 바이트 길이 일치 단위 테스트를 모두 통과시켜 줘`
 - `Orchestrator (Neon)`: `agy --model gemini-pro-orchestrator-neon`(표시명 `Orchestrator (Neon)`)으로 시작하면 `Gemini 4 Neon`이 설계와 검토를 맡고 `Gemini 4 Hydrogen`이 파일 편집과 빌드를 빠르게 수행합니다.
 - `/swarm <작업>`: 네트워크, 2.5D 렌더러, HUD처럼 파일 단위로 나뉘는 작업을 여러 워커와 전담 검증 에이전트(`@verifier`)에게 병렬로 배정합니다.
+
+</details>
+
+### Antigravity 에이전트 하네스 기법 보기
+
+실습 중 에이전트를 제어하고 작업 속도와 안정성을 높이는 기법들을 기능별로 정리했습니다. 필요한 항목을 펼쳐 동작 화면과 사용법을 확인할 수 있습니다.
+
+#### 기본 설정과 워크플로우
+
+<details>
+<summary>01. Antigravity CLI 설치와 버전 및 인증 확인</summary>
+
+`agy` 설치 스크립트를 실행하고 버전(`agy --version`)과 로그인 상태를 확인하는 과정입니다.
+
+![Antigravity CLI 설치 및 인증 확인](./assets/harness/agy-01-install.gif)
+
+</details>
+
+<details>
+<summary>02. MCP 서버 등록과 <code>/mcp</code> 상태 진단</summary>
+
+터미널에서 `agy mcp add`로 `bbl-roguelike` MCP 서버를 등록한 뒤 `agy` 대화창의 `/mcp` 패널에서 연결 도구와 `diagnose_server_health` 응답을 확인합니다. 관련 문서: [Antigravity MCP 문서](https://antigravity.google/docs/mcp)
+
+![MCP 등록 및 /mcp 상태 확인](./assets/harness/agy-02-mcp.gif)
+
+</details>
+
+<details>
+<summary>03. <code>/skills</code> 패널 조회와 <code>submit-client</code> 아카이브 제출</summary>
+
+`.agents/skills/`에 등록된 스킬 목록을 `/skills` 패널에서 확인하고, `submit-client` 스킬로 보안 패턴 점검과 클라이언트 아카이브 Upsert 제출을 수행합니다. 관련 문서: [Antigravity 스킬 문서](https://antigravity.google/docs/skills)
+
+![/skills 조회 및 아카이브 제출](./assets/harness/agy-03-skills.gif)
+
+</details>
+
+<details>
+<summary>04. 샌드박스, <code>AGENTS.md</code> 규칙, <code>/goal</code> 장기 실행 흐름</summary>
+
+`agy --sandbox --mode=auto` 환경에서 상시 규칙(`AGENTS.md`)을 유지하면서 `/goal`로 완료 조건을 만족할 때까지 수정과 검증을 반복하는 흐름입니다.
+
+![샌드박스와 /goal 장기 실행 흐름](./assets/harness/agy-04-sandbox-longrun.gif)
+
+</details>
+
+<details>
+<summary>05. <code>Orchestrator</code> 모델 분담과 <code>/swarm</code> 병렬 작업 상태바</summary>
+
+`Orchestrator (Neon)` 모드와 `/swarm`을 함께 사용해 설계와 구현, 테스트를 여러 워커에 나눠 돌리고 하단 상태줄에서 실시간 진행을 추적합니다.
+
+![Orchestrator와 /swarm 병렬 실행](./assets/harness/agy-05-orchestration.gif)
+
+</details>
+
+#### 에이전트 하네스 및 제어 기법
+
+<details>
+<summary>06. <code>/btw</code> 백그라운드 사이드 질의</summary>
+
+메인 에이전트가 긴 작업을 수행하는 도중에 흐름을 끊지 않고 별도 카드로 프로토콜이나 파일 위치를 물어볼 때 사용합니다. 사이드 질의는 메인 대화 컨텍스트에 섞이지 않으며 필요하면 `/copy btw`로 답변만 복사합니다.
+
+![/btw 백그라운드 사이드 질의](./assets/harness/agy-06-btw.gif)
+
+</details>
+
+<details>
+<summary>07. <code>@</code> 워커 직접 멘션과 <code>/swarm board</code> 실시간 보드</summary>
+
+여러 에이전트가 함께 작업할 때 `@워커이름` 자동완성으로 특정 워커에게 바로 지시를 내리고, `/swarm board`(`Alt+S`) 화면에서 워커 목록, 게시글, 메시지를 한눈에 확인합니다.
+
+![@ 워커 멘션과 /swarm board](./assets/harness/agy-07-agent-comm.gif)
+
+</details>
+
+<details>
+<summary>08. Git 워크트리 격리 병렬 편집</summary>
+
+여러 워커가 같은 파일(예: `renderer.js`)을 동시에 수정할 때 `branch`나 `share` 워크트리로 작업 공간을 분리해 충돌을 막고, 검증 후 병합과 임시 워크트리 정리를 자동으로 처리합니다.
+
+![Git 워크트리 격리 병렬 편집](./assets/harness/agy-08-worktree.gif)
+
+</details>
+
+<details>
+<summary>09. Lifecycle Hook 제어 (<code>.agents/hooks.json</code>, <code>/hooks</code>)</summary>
+
+도구 실행 전후(`PreToolUse`, `PostToolUse`)와 종료 시점(`Stop`)에 훅을 걸어 위험한 셸 명령을 사전에 차단하거나 파일 저장 직후 XSS 패턴 검사를 자동으로 돌립니다.
+
+![Lifecycle Hook 제어](./assets/harness/agy-09-lifecycle-hooks.gif)
+
+</details>
+
+<details>
+<summary>10. <code>/goal</code> 자율 완주와 조기 종료 차단</summary>
+
+체크리스트 기반 완료 조건을 지정하면 일부 테스트가 실패한 상태에서 에이전트가 작업을 멈추려 할 때 Stop 훅이 종료를 가로채고, 모든 항목이 통과할 때까지 수정과 재검증을 이어갑니다.
+
+![/goal 자율 완주 및 재검증](./assets/harness/agy-10-goal-mode.gif)
+
+</details>
+
+<details>
+<summary>11. <code>/permissions</code> 허용 및 차단 리스트 제어</summary>
+
+대화창의 `/permissions` 에디터에서 범위별 허용 목록과 차단 목록(`Deny > Ask > Allow`)을 관리해 빌드와 테스트는 자동 승인하고 `rm -rf` 같은 파괴적 명령은 즉시 차단합니다.
+
+![/permissions 허용 및 차단 목록 제어](./assets/harness/agy-11-permissions-allowlist.gif)
+
+</details>
+
+<details>
+<summary>12. <code>--sandbox</code> OS 커널 샌드박스 격리</summary>
+
+macOS Seatbelt 등 OS 수준 샌드박스를 켜면 워크스페이스 내부 파일 편집과 빌드는 승인 대기 없이 실행되면서 `~/.ssh` 같은 민감 경로 접근과 비허용 외부 네트워크 연결은 커널 단에서 차단됩니다. 관련 문서: [터미널 샌드박스 문서](https://antigravity.google/docs/sandbox)
+
+![--sandbox OS 커널 샌드박스 격리](./assets/harness/agy-12-sandbox-seatbelt.gif)
+
+</details>
+
+#### 실전 에이전트 운영 테크닉
+
+<details>
+<summary>13. <code>/plan</code>과 <code>/grill-me</code> 사전 설계 인터뷰 및 계획 승인</summary>
+
+코드를 바로 수정하기 전에 `/plan`으로 구현 계획 아티팩트(`implementation_plan.md`)를 작성하고, 요구사항이 모호한 부분은 `/grill-me` 선택형 질의응답으로 설계를 먼저 합의한 뒤 승인해 실행합니다. 자세한 사용법은 [Antigravity Plan 모드 문서](https://antigravity.google/docs/plan/)를 참고하세요.
+
+![/plan과 /grill-me 설계 인터뷰 및 계획 승인](./assets/harness/agy-13-plan-grill-me.gif)
+
+</details>
+
+<details>
+<summary>14. <code>/boost</code> 심층 추론과 반례 탐색</summary>
+
+바이너리 파싱 오류나 각도 경계 역회전처럼 원인이 까다로운 버그를 다룰 때 `/boost`를 사용하면 구현, 반례 탐색(Challenger), 퍼징 검증 관점을 거쳐 결함을 찾아냅니다.
+
+![/boost 심층 추론과 반례 검증](./assets/harness/agy-14-boost-deep-reasoning.gif)
+
+</details>
+
+<details>
+<summary>15. <code>/schedule</code> 주기 작업, <code>/learn</code> 규칙 저장, <code>/context</code> 창 확인</summary>
+
+`/schedule`로 비차단 크론이나 타이머를 걸어 두고, 반복해서 교정한 내용은 `/learn`으로 `AGENTS.md` 규칙에 영구 저장하며, `/context` 그리드로 현재 컨텍스트 점유 상태를 확인합니다.
+
+![/schedule, /learn, /context 활용](./assets/harness/agy-15-schedule-tasks-learn.gif)
+
+</details>
+
+<details>
+<summary>16. <code>/teamwork</code> 장기 멀티에이전트 마일스톤과 검증 게이트</summary>
+
+독립 모듈이 많은 큰 프로젝트에서 `/teamwork`를 사용하면 마일스톤별 파일 소유권을 나누고 리뷰어, 챌린저, 오디터 단계를 거쳐 결과물을 검수합니다.
+
+![/teamwork 멀티에이전트 검증 게이트](./assets/harness/agy-16-teamwork-gates.gif)
+
+</details>
+
+<details>
+<summary>17. <code>/effort</code> 추론 강도 조절, <code>/fork</code> 세션 분기, <code>/browser</code> 시각 검증</summary>
+
+작업 난이도에 따라 `/effort`로 추론 강도를 전환하고, 실험적인 변경은 `/fork`로 현재 대화를 분기해 안전하게 시도하며, `/browser`로 실제 브라우저의 Canvas 렌더링과 콘솔 오류를 점검합니다.
+
+![/effort, /fork, /browser 활용](./assets/harness/agy-17-fork-effort-browser.gif)
 
 </details>
 
@@ -760,6 +924,7 @@ build-beyond-limits/
 │   ├── TILESET_AND_RENDERING.md  # 타일 ID, 2.5D 벽과 모서리 규칙, 광원 렌더링 명세
 │   └── COMBAT_AND_VFX.md         # 체력과 부활, 전투와 스킬, 보스 패턴, 이벤트 명세
 └── assets/
+    ├── harness/                  # Antigravity 에이전트 하네스 및 운영 기법 예시 GIF
     └── tileset/                  # CC0 16x16 게임 타일셋 이미지, 좌표 목록, 라이선스
         ├── dungeon_autotile_16x16.png
         ├── tile_list_v1.7
