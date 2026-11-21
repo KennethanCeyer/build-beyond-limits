@@ -266,13 +266,17 @@ agy --sandbox --mode=auto --model gemini-4-neon-high
 <details>
 <summary>Antigravity 에이전트 하네스 기법 예시 보기 (17종)</summary>
 
-### 하네스 엔지니어링 개요
+### 하네스 엔지니어링이란
 
-에이전트는 추론을 담당하는 모델(`Gemini 4 Neon`, `Hydrogen`)만으로 완성되지 않고, API와 파일 시스템, 코드 실행, 규칙(`AGENTS.md`, `.agents/rules/`), MCP, 샌드박스를 엮어 주는 하네스(Harness)가 결합되어 목표를 마칠 때까지 루프를 수행합니다.
+원래 하네스(Harness)는 말이나 등반 장비에 채워 힘을 원하는 방향으로 안전하게 이끌어 주는 마구나 안전 장구를 뜻합니다. AI 개발에서 하네스 엔지니어링(Harness Engineering)은 성능 좋은 모델 하나에 모든 판단을 맡기는 대신, 모델 바깥에서 도구, 규칙, 권한, 샌드박스, 검증 절차를 설계해 에이전트가 의도한 범위 안에서 안정적으로 작업을 끝내게 만드는 기법입니다.
+
+예를 들어 이 실습에서 모델에게 "로그라이크 게임 클라이언트 만들어 줘"라고만 지시하면, 서버 패킷 구조를 추측해 잘못된 메시지를 보내거나 20Hz 상태 갱신마다 버튼을 새로 그려 클릭이 씹히거나 보안 금지 패턴을 넣어 아카이브 제출에서 거절되기 쉽습니다. 반대로 MCP(`bbl-roguelike`)로 실제 서버 규격을 조회하게 연결하고, `AGENTS.md`와 `.agents/rules/`에 자주 나는 실수와 단계별 확인 절차를 적어 두고, `--sandbox`와 `/permissions`로 위험한 명령을 막아 두면 같은 모델을 쓰더라도 결과의 일관성이 크게 달라집니다.
+
+이 구조를 식으로 정리하면 추론을 맡는 모델(Model)에 API, 파일 시스템, 코드 실행, 규칙을 묶은 하네스(Harness)가 결합되어 목표를 마칠 때까지 스스로 확인하고 수정하는 에이전트(Agent)가 됩니다.
 
 ![Model + Harness = Agent 구조](https://codelabs.developers.google.com/static/harness-engineering-antigravity/img/model-plus-harness-agent_1920.png)
 
-에이전트 개발 방식도 단일 도구 호출(`Tool use`)에서 규칙과 훅, 권한, 샌드박스를 체계적으로 설계하는 하네스 엔지니어링(`Harness engineering`)을 거쳐 여러 에이전트를 병렬로 조율하는 멀티 에이전트 오케스트레이션(`Multi-agent orchestration`)으로 넓어지고 있습니다. 아래 17개 예시는 이 흐름에 맞춰 기본 설정부터 하네스 제어, 멀티 에이전트 운영까지 3개 묶음으로 정리했습니다.
+에이전트를 다루는 방식 역시 단일 도구를 한 번씩 부르던 초기 단계(`Tool use`)에서, 규칙과 훅, 샌드박스로 작업 환경을 통제하는 하네스 엔지니어링(`Harness engineering`)으로 발전했고, 이제는 여러 에이전트가 역할을 나눠 병렬로 협업하는 멀티 에이전트 오케스트레이션(`Multi-agent orchestration`)으로 넓어지고 있습니다. 아래 17개 예시는 바로 이 세 단계를 따라 기본 설정부터 하네스 제어, 멀티 에이전트 운영까지 차례대로 보여줍니다.
 
 ![Tool use에서 Harness engineering, Multi-agent orchestration으로의 발전](https://codelabs.developers.google.com/static/harness-engineering-antigravity/img/harness-past-present-future_1920.png)
 
@@ -510,6 +514,17 @@ GDG 부산 핸즈온 가이드에 따라 할당받은 `$5.00` Google Cloud 크�
 3. [Generative Language API](https://console.cloud.google.com/apis/library/generativelanguage.googleapis.com) 사용 설정을 켜고, `키 수정 > API 제한사항`에서 `Generative Language API`로 제한 설정. 제한 없는 표준 키는 Gemini API 호출이 거부됩니다.
 
 ![Google Cloud 콘솔 API 키 발급 순서](./assets/guide-gcp-apikey.png)
+
+</details>
+
+<details>
+<summary>크레딧 초과 사용 방지 (월별 지출 한도와 예산 알림 설정)</summary>
+
+`$5.00` 크레딧을 넘겨 예상치 못한 과금이 발생하지 않도록 아래 지출 한도(Spend Cap)를 함께 설정해 두는 것을 권장합니다.
+
+- 월별 지출 한도(Spend Cap) 설정: [Google AI Studio](https://aistudio.google.com/) 프로젝트의 결제(`Spend`) 설정이나 [Google Cloud 콘솔 결제 > 예산 및 알림](https://console.cloud.google.com/billing)에서 해당 프로젝트의 Gemini API를 대상으로 Spend Cap 예산을 걸면, 월 누적 추정 사용량이 한도에 도달했을 때 해당 프로젝트의 신규 Gemini API 요청이 자동으로 일시 중단됩니다. ([Gemini API 결제 및 한도 문서](https://ai.google.dev/gemini-api/docs/billing), [Google Cloud 예산 문서](https://cloud.google.com/billing/docs/how-to/budgets))
+- 일반 예산 알림과의 차이: 알림 전용 예산(Budget Alert)은 50%, 80%, 100% 도달 시 이메일만 발송할 뿐 API 호출을 막지 않으므로, 자동 차단이 필요하면 Spend Cap 설정을 사용합니다.
+- 집계 지연 대비 여유분 확보: 사용량 집계에는 보통 수 분에서 10분 안팎의 지연이 있고 이미 진행 중인 요청은 완료까지 청구됩니다. `$5.00` 크레딧 안에서 멈추려면 한도를 `$4.00`~`$4.50` 정도로 여유 있게 두고, 실습이 끝난 뒤 사용하지 않는 API 키는 AI Studio나 GCP 콘솔에서 삭제하거나 비활성화해 두세요.
 
 </details>
 
