@@ -266,7 +266,21 @@ agy --sandbox --mode=auto --model gemini-4-neon-high
 <details>
 <summary>Antigravity 에이전트 하네스 기법 예시 보기 (17종)</summary>
 
-실습 중 에이전트를 제어하고 작업 속도와 안정성을 높이는 기법을 3개 묶음으로 정리했습니다. 원하는 묶음을 펼쳐 개별 동작 예시를 확인할 수 있습니다.
+### 하네스 엔지니어링 개요
+
+에이전트는 추론을 담당하는 모델(`Gemini 4 Neon`, `Hydrogen`)만으로 완성되지 않고, API와 파일 시스템, 코드 실행, 규칙(`AGENTS.md`, `.agents/rules/`), MCP, 샌드박스를 엮어 주는 하네스(Harness)가 결합되어 목표를 마칠 때까지 루프를 수행합니다.
+
+![Model + Harness = Agent 구조](https://codelabs.developers.google.com/static/harness-engineering-antigravity/img/model-plus-harness-agent_1920.png)
+
+에이전트 개발 방식도 단일 도구 호출(`Tool use`)에서 규칙과 훅, 권한, 샌드박스를 체계적으로 설계하는 하네스 엔지니어링(`Harness engineering`)을 거쳐 여러 에이전트를 병렬로 조율하는 멀티 에이전트 오케스트레이션(`Multi-agent orchestration`)으로 넓어지고 있습니다. 아래 17개 예시는 이 흐름에 맞춰 기본 설정부터 하네스 제어, 멀티 에이전트 운영까지 3개 묶음으로 정리했습니다.
+
+![Tool use에서 Harness engineering, Multi-agent orchestration으로의 발전](https://codelabs.developers.google.com/static/harness-engineering-antigravity/img/harness-past-present-future_1920.png)
+
+출처: [Google Codelabs, Harness Engineering with Antigravity](https://codelabs.developers.google.com/harness-engineering-antigravity)
+
+### 기능별 동작 예시
+
+원하는 묶음을 펼쳐 개별 동작 화면과 사용법을 확인할 수 있습니다.
 
 <details>
 <summary>기본 설치와 워크플로우 (5종)</summary>
