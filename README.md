@@ -406,7 +406,7 @@ macOS Seatbelt 등 OS 수준 샌드박스를 켜면 워크스페이스 내부 �
 <details>
 <summary>13. <code>/plan</code>과 <code>/grill-me</code> 사전 설계 인터뷰 및 계획 승인</summary>
 
-코드를 바로 수정하기 전에 `/plan`으로 구현 계획 아티팩트(`implementation_plan.md`)를 작성하고, 요구사항이 모호한 부분은 `/grill-me` 선택형 질의응답으로 설계를 먼저 합의한 뒤 승인해 실행합니다. ([Antigravity Plan 모드 문서](https://antigravity.google/docs/plan/))
+요구사항이 덜 정리된 상태에서 바로 코드를 고치다 되돌리는 낭비를 줄일 때 씁니다. `/plan /grill-me <작업>`으로 함께 호출하면 한 번에 하나씩 추천안이 담긴 질문으로 설계를 맞춘 뒤, 구현 계획 아티팩트(`implementation_plan.md`)를 승인하기 전까지 파일을 수정하지 않습니다. ([Antigravity Plan 모드 문서](https://antigravity.google/docs/plan/), [Grill me 문서](https://antigravity.google/docs/commands/grill-me#combine-with-plan))
 
 ![/plan과 /grill-me 설계 인터뷰 및 계획 승인](./assets/harness/agy-13-plan-grill-me.gif)
 
@@ -415,7 +415,7 @@ macOS Seatbelt 등 OS 수준 샌드박스를 켜면 워크스페이스 내부 �
 <details>
 <summary>14. <code>/boost</code> 심층 추론과 반례 탐색</summary>
 
-바이너리 파싱 오류나 각도 경계 역회전처럼 원인이 까다로운 버그를 다룰 때 `/boost`를 사용하면 구현, 반례 탐색(Challenger), 퍼징 검증 관점을 거쳐 결함을 찾아냅니다.
+기본 단위 테스트는 통과하지만 경계 조건에서 터지는 까다로운 버그를 잡을 때 씁니다. 구현 에이전트가 만든 패치를 반례 탐색 에이전트(Challenger)가 의도적으로 깨뜨려 숨은 결함을 찾아내고, 수정 후 퍼징 테스트까지 교차 검증합니다.
 
 ![/boost 심층 추론과 반례 검증](./assets/harness/agy-14-boost-deep-reasoning.gif)
 
@@ -424,7 +424,7 @@ macOS Seatbelt 등 OS 수준 샌드박스를 켜면 워크스페이스 내부 �
 <details>
 <summary>15. <code>/schedule</code> 주기 작업, <code>/learn</code> 규칙 저장, <code>/context</code> 창 확인</summary>
 
-`/schedule`로 비차단 크론이나 타이머를 걸어 두고, 반복해서 교정한 내용은 `/learn`으로 `AGENTS.md` 규칙에 영구 저장하며, `/context` 그리드로 현재 컨텍스트 점유 상태를 확인합니다.
+서버 상태 점검처럼 반복되는 작업은 `/schedule`로 백그라운드에 맡기고, 세션 중 자주 교정한 습관은 `/learn`으로 `AGENTS.md`에 영구 반영합니다. 대화가 길어질 때는 `/context`로 토큰 점유 현황을 확인해 정리 시점을 잡을 수 있습니다.
 
 ![/schedule, /learn, /context 활용](./assets/harness/agy-15-schedule-tasks-learn.gif)
 
@@ -433,7 +433,7 @@ macOS Seatbelt 등 OS 수준 샌드박스를 켜면 워크스페이스 내부 �
 <details>
 <summary>16. <code>/teamwork</code> 장기 멀티에이전트 마일스톤과 검증 게이트</summary>
 
-독립 모듈이 많은 큰 프로젝트에서 `/teamwork`를 사용하면 마일스톤별 파일 소유권을 나누고 리뷰어, 챌린저, 오디터 단계를 거쳐 결과물을 검수합니다.
+단일 에이전트로는 컨텍스트가 금방 차고 수정 충돌이 생기는 큰 프로젝트에 씁니다. 마일스톤별 파일 소유권을 분리해 병렬로 구현하고, 장기 실행 중 컨텍스트 한계나 멈춤이 생기면 Sentinel이 다음 세대 오케스트레이터로 상태를 이어받습니다. 각 단계마다 구현과 분리된 리뷰어, 챌린저, 오디터 검증 게이트를 통과해야 완료됩니다.
 
 ![/teamwork 멀티에이전트 검증 게이트](./assets/harness/agy-16-teamwork-gates.gif)
 
@@ -442,7 +442,7 @@ macOS Seatbelt 등 OS 수준 샌드박스를 켜면 워크스페이스 내부 �
 <details>
 <summary>17. <code>/effort</code> 추론 강도 조절, <code>/fork</code> 세션 분기, <code>/browser</code> 시각 검증</summary>
 
-작업 난이도에 따라 `/effort`로 추론 강도를 전환하고, 실험적인 변경은 `/fork`로 현재 대화를 분기해 안전하게 시도하며, `/browser`로 실제 브라우저의 Canvas 렌더링과 콘솔 오류를 점검합니다.
+어려운 구간만 `/effort xhigh`로 추론 강도를 높여 비용과 속도를 조절하고, 위험한 실험은 `/fork`로 대화를 분기해 기존 작업 흐름을 건드리지 않고 시도합니다. UI 변경 뒤에는 `/browser`로 실제 브라우저 화면과 콘솔 오류를 바로 검증할 수 있습니다.
 
 ![/effort, /fork, /browser 활용](./assets/harness/agy-17-fork-effort-browser.gif)
 
