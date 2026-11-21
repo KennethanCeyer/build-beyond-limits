@@ -125,7 +125,7 @@ Google Antigravity는 데스크톱 IDE, 에디터 확장, 터미널 클라이언
 </details>
 
 <details>
-<summary>MCP 개요 및 `bbl-roguelike` 연동 방법</summary>
+<summary>MCP 개요 및 <code>bbl-roguelike</code> 연동 방법</summary>
 
 ### MCP 역할
 
@@ -263,58 +263,63 @@ agy --sandbox --mode=auto --model gemini-4-neon-high
 
 </details>
 
-### Antigravity 에이전트 하네스 기법 보기
+<details>
+<summary>Antigravity 에이전트 하네스 기법 예시 보기 (17종)</summary>
 
-실습 중 에이전트를 제어하고 작업 속도와 안정성을 높이는 기법들을 기능별로 정리했습니다. 필요한 항목을 펼쳐 동작 화면과 사용법을 확인할 수 있습니다.
-
-#### 기본 설정과 워크플로우
+실습 중 에이전트를 제어하고 작업 속도와 안정성을 높이는 기법을 3개 묶음으로 정리했습니다. 원하는 묶음을 펼쳐 개별 동작 예시를 확인할 수 있습니다.
 
 <details>
-<summary>01. Antigravity CLI 설치와 버전 및 인증 확인</summary>
+<summary>기본 설치와 워크플로우 (5종)</summary>
 
-`agy` 설치 스크립트를 실행하고 버전(`agy --version`)과 로그인 상태를 확인하는 과정입니다.
+<details>
+<summary>01. Antigravity CLI 설치와 로그인 확인</summary>
 
-![Antigravity CLI 설치 및 인증 확인](./assets/harness/agy-01-install.gif)
+설치 스크립트로 `agy`를 받은 뒤 `agy --version`으로 실행 여부와 계정 인증 상태를 확인하는 예시입니다.
+
+![Antigravity CLI 설치와 로그인 확인](./assets/harness/agy-01-install.gif)
 
 </details>
 
 <details>
-<summary>02. MCP 서버 등록과 <code>/mcp</code> 상태 진단</summary>
+<summary>02. MCP 서버 등록과 <code>/mcp</code> 연결 진단</summary>
 
-터미널에서 `agy mcp add`로 `bbl-roguelike` MCP 서버를 등록한 뒤 `agy` 대화창의 `/mcp` 패널에서 연결 도구와 `diagnose_server_health` 응답을 확인합니다. 관련 문서: [Antigravity MCP 문서](https://antigravity.google/docs/mcp)
+`agy mcp add`로 `bbl-roguelike` MCP 서버를 추가하고, 대화창에서 `/mcp`를 열어 연결된 도구 목록과 라이브 서버 상태를 확인하는 예시입니다. ([Antigravity MCP 문서](https://antigravity.google/docs/mcp))
 
-![MCP 등록 및 /mcp 상태 확인](./assets/harness/agy-02-mcp.gif)
-
-</details>
-
-<details>
-<summary>03. <code>/skills</code> 패널 조회와 <code>submit-client</code> 아카이브 제출</summary>
-
-`.agents/skills/`에 등록된 스킬 목록을 `/skills` 패널에서 확인하고, `submit-client` 스킬로 보안 패턴 점검과 클라이언트 아카이브 Upsert 제출을 수행합니다. 관련 문서: [Antigravity 스킬 문서](https://antigravity.google/docs/skills)
-
-![/skills 조회 및 아카이브 제출](./assets/harness/agy-03-skills.gif)
+![MCP 서버 등록과 /mcp 연결 진단](./assets/harness/agy-02-mcp.gif)
 
 </details>
 
 <details>
-<summary>04. 샌드박스, <code>AGENTS.md</code> 규칙, <code>/goal</code> 장기 실행 흐름</summary>
+<summary>03. <code>/skills</code> 조회와 아카이브 제출</summary>
 
-`agy --sandbox --mode=auto` 환경에서 상시 규칙(`AGENTS.md`)을 유지하면서 `/goal`로 완료 조건을 만족할 때까지 수정과 검증을 반복하는 흐름입니다.
+`/skills`로 워크스페이스에 포함된 스킬을 확인한 뒤, `submit-client` 스킬로 보안 검사를 거쳐 클라이언트 아카이브에 제출하는 예시입니다. ([Antigravity 스킬 문서](https://antigravity.google/docs/skills))
 
-![샌드박스와 /goal 장기 실행 흐름](./assets/harness/agy-04-sandbox-longrun.gif)
+![/skills 조회와 아카이브 제출](./assets/harness/agy-03-skills.gif)
 
 </details>
 
 <details>
-<summary>05. <code>Orchestrator</code> 모델 분담과 <code>/swarm</code> 병렬 작업 상태바</summary>
+<summary>04. 샌드박스와 <code>/goal</code>을 함께 쓰는 자동 개발</summary>
 
-`Orchestrator (Neon)` 모드와 `/swarm`을 함께 사용해 설계와 구현, 테스트를 여러 워커에 나눠 돌리고 하단 상태줄에서 실시간 진행을 추적합니다.
+`--sandbox --mode=auto`로 로컬 환경을 격리한 상태에서 `AGENTS.md` 규칙을 지키며 `/goal` 완료 조건을 통과할 때까지 수정과 검증을 반복하는 예시입니다.
 
-![Orchestrator와 /swarm 병렬 실행](./assets/harness/agy-05-orchestration.gif)
+![샌드박스와 /goal 자동 개발](./assets/harness/agy-04-sandbox-longrun.gif)
 
 </details>
 
-#### 에이전트 하네스 및 제어 기법
+<details>
+<summary>05. <code>Orchestrator</code>와 <code>/swarm</code> 병렬 작업</summary>
+
+`Orchestrator (Neon)`으로 설계와 코드 작성을 모델별로 나누고, `/swarm` 워커들이 동시에 진행하는 상태를 하단 상태줄에서 추적하는 예시입니다.
+
+![Orchestrator와 /swarm 병렬 작업](./assets/harness/agy-05-orchestration.gif)
+
+</details>
+
+</details>
+
+<details>
+<summary>에이전트 하네스 및 제어 기법 (7종)</summary>
 
 <details>
 <summary>06. <code>/btw</code> 백그라운드 사이드 질의</summary>
@@ -373,18 +378,21 @@ agy --sandbox --mode=auto --model gemini-4-neon-high
 <details>
 <summary>12. <code>--sandbox</code> OS 커널 샌드박스 격리</summary>
 
-macOS Seatbelt 등 OS 수준 샌드박스를 켜면 워크스페이스 내부 파일 편집과 빌드는 승인 대기 없이 실행되면서 `~/.ssh` 같은 민감 경로 접근과 비허용 외부 네트워크 연결은 커널 단에서 차단됩니다. 관련 문서: [터미널 샌드박스 문서](https://antigravity.google/docs/sandbox)
+macOS Seatbelt 등 OS 수준 샌드박스를 켜면 워크스페이스 내부 파일 편집과 빌드는 승인 대기 없이 실행되면서 `~/.ssh` 같은 민감 경로 접근과 비허용 외부 네트워크 연결은 커널 단에서 차단됩니다. ([터미널 샌드박스 문서](https://antigravity.google/docs/sandbox))
 
 ![--sandbox OS 커널 샌드박스 격리](./assets/harness/agy-12-sandbox-seatbelt.gif)
 
 </details>
 
-#### 실전 에이전트 운영 테크닉
+</details>
+
+<details>
+<summary>에이전트 운영 테크닉 (5종)</summary>
 
 <details>
 <summary>13. <code>/plan</code>과 <code>/grill-me</code> 사전 설계 인터뷰 및 계획 승인</summary>
 
-코드를 바로 수정하기 전에 `/plan`으로 구현 계획 아티팩트(`implementation_plan.md`)를 작성하고, 요구사항이 모호한 부분은 `/grill-me` 선택형 질의응답으로 설계를 먼저 합의한 뒤 승인해 실행합니다. 자세한 사용법은 [Antigravity Plan 모드 문서](https://antigravity.google/docs/plan/)를 참고하세요.
+코드를 바로 수정하기 전에 `/plan`으로 구현 계획 아티팩트(`implementation_plan.md`)를 작성하고, 요구사항이 모호한 부분은 `/grill-me` 선택형 질의응답으로 설계를 먼저 합의한 뒤 승인해 실행합니다. ([Antigravity Plan 모드 문서](https://antigravity.google/docs/plan/))
 
 ![/plan과 /grill-me 설계 인터뷰 및 계획 승인](./assets/harness/agy-13-plan-grill-me.gif)
 
@@ -423,6 +431,10 @@ macOS Seatbelt 등 OS 수준 샌드박스를 켜면 워크스페이스 내부 �
 작업 난이도에 따라 `/effort`로 추론 강도를 전환하고, 실험적인 변경은 `/fork`로 현재 대화를 분기해 안전하게 시도하며, `/browser`로 실제 브라우저의 Canvas 렌더링과 콘솔 오류를 점검합니다.
 
 ![/effort, /fork, /browser 활용](./assets/harness/agy-17-fork-effort-browser.gif)
+
+</details>
+
+</details>
 
 </details>
 
